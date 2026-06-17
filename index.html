@@ -1,0 +1,4052 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>项目确认表生成工具</title>
+    <style>
+:root {
+  color-scheme: light;
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-soft: #fafafa;
+  --ink: #111111;
+  --muted: #6e6e73;
+  --line: #d8d8dc;
+  --line-strong: #b8b8bf;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 18px 46px rgba(0, 0, 0, 0.12);
+  --shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.08);
+  --radius: 8px;
+  --page-width: 210mm;
+  --page-height: 297mm;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC",
+    "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: linear-gradient(180deg, #ffffff 0%, var(--bg) 38%);
+  min-height: 100vh;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes thumbIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes quietPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
+  }
+
+  50% {
+    box-shadow: 0 0 0 7px rgba(0, 0, 0, 0.04);
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toastOut {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(420px, 48vw);
+  gap: 28px;
+  padding: 28px;
+  align-items: start;
+}
+
+.workspace {
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 22px;
+  animation: fadeUp 0.5s var(--ease-out) both;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 34px;
+  line-height: 1.12;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+h2 {
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 650;
+}
+
+h3 {
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 650;
+}
+
+.top-actions,
+.section-heading,
+.dialog-head,
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.top-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.section-heading {
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.heading-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.preview-switch input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.preview-switch span {
+  width: 42px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #e9e9ec;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.preview-switch span::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition: transform 0.2s var(--ease-spring);
+}
+
+.preview-switch input:checked + span {
+  border-color: #111111;
+  background: #111111;
+}
+
+.preview-switch input:checked + span::after {
+  transform: translateX(18px);
+}
+
+.preview-switch input:focus-visible + span {
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
+}
+
+.inline-space {
+  margin-top: 24px;
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px;
+  gap: 16px;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+  animation: fadeUp 0.54s var(--ease-out) both;
+  transition: box-shadow 0.22s var(--ease-out), transform 0.22s var(--ease-out),
+    border-color 0.22s ease;
+}
+
+.preset-panel {
+  animation-delay: 0.06s;
+}
+
+.panel:hover {
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-hover);
+}
+
+.form-panel,
+.preset-panel {
+  padding: 20px;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+label,
+.field-label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  min-height: 42px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease,
+    transform 0.18s var(--ease-out);
+}
+
+textarea {
+  resize: vertical;
+  line-height: 1.55;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.full-field {
+  margin-top: 18px;
+}
+
+.primary-button,
+.ghost-button,
+.icon-text-button,
+.icon-button {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: transform 0.18s var(--ease-spring), background 0.18s ease, border-color 0.18s ease,
+    box-shadow 0.18s ease;
+  white-space: nowrap;
+}
+
+.primary-button {
+  padding: 0 18px;
+  color: #ffffff;
+  background: #111111;
+}
+
+.ghost-button,
+.icon-text-button,
+.icon-button {
+  color: var(--ink);
+  background: #ffffff;
+  border: 1px solid var(--line);
+}
+
+.ghost-button,
+.icon-text-button {
+  padding: 0 14px;
+}
+
+.compact {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.icon-button {
+  width: 40px;
+  padding: 0;
+  font-size: 18px;
+}
+
+.icon-button.small {
+  width: 32px;
+  min-height: 32px;
+  font-size: 16px;
+}
+
+.primary-button:hover,
+.ghost-button:hover,
+.icon-text-button:hover,
+.icon-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+.primary-button:active,
+.ghost-button:active,
+.icon-text-button:active,
+.icon-button:active {
+  transform: translateY(0) scale(0.985);
+  box-shadow: none;
+}
+
+.ghost-button:hover,
+.icon-text-button:hover,
+.icon-button:hover {
+  background: #f4f4f4;
+}
+
+.list-stack,
+.quote-list,
+.preset-list,
+.trash-list {
+  display: grid;
+  gap: 10px;
+}
+
+.content-row,
+.quote-row,
+.trash-row,
+.preset-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  border-radius: var(--radius);
+  padding: 10px;
+  animation: fadeUp 0.32s var(--ease-out) both;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease,
+    transform 0.18s var(--ease-out);
+}
+
+.content-row:hover,
+.quote-row:hover,
+.preset-card:hover,
+.trash-row:hover {
+  background: #ffffff;
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
+}
+
+.content-row {
+  grid-template-columns: 1fr 36px;
+  align-items: start;
+}
+
+.quote-row {
+  grid-template-columns: minmax(120px, 1.3fr) minmax(110px, 0.8fr) 36px;
+  align-items: start;
+}
+
+.solution-list,
+.style-list {
+  display: grid;
+  gap: 12px;
+}
+
+.solution-row,
+.style-row,
+.color-font-editor {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  border-radius: var(--radius);
+  padding: 12px;
+  animation: fadeUp 0.34s var(--ease-out) both;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease,
+    transform 0.18s var(--ease-out);
+}
+
+.solution-row:hover,
+.style-row:hover,
+.color-font-editor:hover {
+  background: #ffffff;
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
+}
+
+.solution-row-head,
+.solution-upload-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.solution-upload-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.image-dropzone {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  min-height: 120px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: #ffffff;
+  padding: 12px;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease,
+    transform 0.18s var(--ease-out);
+}
+
+.image-dropzone:hover {
+  border-color: #8f8f96;
+  background: #fbfbfb;
+  transform: translateY(-1px);
+}
+
+.image-dropzone:focus-visible,
+.image-dropzone.is-pasting {
+  border-color: #111111;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
+}
+
+.image-dropzone.is-dragging {
+  border-color: #111111;
+  background: #f7f7f7;
+  animation: quietPulse 1s ease-in-out infinite;
+}
+
+.image-dropzone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 0;
+}
+
+.dropzone-copy {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
+}
+
+.dropzone-copy strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.upload-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.style-upload-thumbs {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.upload-thumb {
+  height: 74px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #f6f6f6;
+  padding: 0;
+  animation: thumbIn 0.24s var(--ease-out) both;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s var(--ease-out);
+}
+
+.upload-thumb:hover {
+  border-color: #999999;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px) scale(1.015);
+}
+
+.upload-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.row-delete {
+  width: 36px;
+  min-height: 42px;
+  border-radius: var(--radius);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: #333333;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s var(--ease-spring),
+    box-shadow 0.18s ease;
+}
+
+.row-delete:hover {
+  background: #111111;
+  border-color: #111111;
+  color: #ffffff;
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
+}
+
+.color-list {
+  display: grid;
+  gap: 10px;
+}
+
+.color-control-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+  padding: 10px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s var(--ease-out);
+}
+
+.color-control-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
+}
+
+.color-control-card > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.color-input-pair {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 36px;
+  gap: 8px;
+  align-items: center;
+}
+
+.is-primary .color-input-pair {
+  grid-template-columns: 42px minmax(0, 1fr);
+}
+
+.color-input-pair input[type="color"] {
+  min-height: 42px;
+  padding: 4px;
+}
+
+.font-select-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.font-select-row select,
+.font-select-row option {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei",
+    "Segoe UI", sans-serif;
+}
+
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  min-height: 42px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease,
+    transform 0.18s var(--ease-out);
+}
+
+.total-strip {
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--muted);
+}
+
+.total-strip strong {
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: 650;
+}
+
+.preset-panel {
+  position: sticky;
+  top: 18px;
+}
+
+.preset-card {
+  text-align: left;
+  background: #ffffff;
+}
+
+.backup-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #ffffff 0%, #f7f7f8 100%);
+  padding: 12px;
+  margin-bottom: 14px;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease,
+    transform 0.18s var(--ease-out);
+}
+
+.backup-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-1px);
+}
+
+.backup-card.is-dragging {
+  border-color: #111111;
+  background: #ffffff;
+  animation: quietPulse 1s ease-in-out infinite;
+}
+
+.backup-card > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.backup-card strong {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.backup-card span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.backup-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.backup-actions .primary-button,
+.backup-actions .ghost-button {
+  width: 100%;
+}
+
+.preset-card strong {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.preset-card span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.preset-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.preset-actions button,
+.trash-row button {
+  flex: 1;
+  min-height: 32px;
+  border-radius: var(--radius);
+  color: var(--ink);
+  background: #f3f3f3;
+  border: 1px solid var(--line);
+}
+
+.preview-wrap {
+  position: sticky;
+  top: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+  max-height: calc(100vh - 36px);
+  padding: 12px;
+  animation: fadeUp 0.58s var(--ease-out) 0.08s both;
+}
+
+.sheet {
+  width: min(var(--page-width), 100%);
+  min-height: var(--page-height);
+  height: auto;
+  background: #ffffff;
+  color: #111111;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.14);
+  padding: 18mm 17mm;
+  display: flex;
+  flex-direction: column;
+  gap: 9mm;
+  align-self: flex-start;
+  overflow: visible;
+  animation: sheetIn 0.62s var(--ease-out) 0.1s both;
+  transition: box-shadow 0.24s var(--ease-out), transform 0.24s var(--ease-out);
+}
+
+.preview-wrap:hover .sheet {
+  box-shadow: 0 28px 88px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px);
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  border-bottom: 1px solid #111111;
+  padding-bottom: 9mm;
+}
+
+.sheet-header p,
+.sheet-header span,
+.sheet-block span {
+  color: #666666;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.sheet-header > span {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sheet-header h2 {
+  font-size: 28px;
+  margin-top: 4px;
+  font-weight: 650;
+}
+
+.sheet-block {
+  display: grid;
+  border: 1px solid #d7d7d7;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.client-block {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.meta-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sheet-block div {
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+  border-right: 1px solid #d7d7d7;
+  min-width: 0;
+}
+
+.sheet-block div:last-child {
+  border-right: 0;
+}
+
+.sheet-block strong {
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sheet-section {
+  display: grid;
+  gap: 10px;
+}
+
+.sheet-section h3 {
+  color: #111111;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.sheet-section p,
+.sheet-section li {
+  font-size: 13px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.sheet-section ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.sheet-subheader {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid #111111;
+  padding-top: 8mm;
+}
+
+.first-visible-preview-section .sheet-subheader {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.sheet-subheader p {
+  color: #666666;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.sheet-subheader h2 {
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.sheet-table {
+  border: 1px solid #d7d7d7;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.solution-preview-section,
+.style-preview-section,
+.color-font-preview-section {
+  break-before: page;
+  page-break-before: always;
+}
+
+.solution-preview-table,
+.style-preview-table {
+  display: grid;
+  border: 1px solid #d7d7d7;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.solution-preview-row {
+  display: grid;
+  grid-template-columns: 0.8fr 1.25fr 1.25fr 1.35fr 1.35fr;
+  border-bottom: 1px solid #d7d7d7;
+}
+
+.solution-preview-row:last-child {
+  border-bottom: 0;
+}
+
+.solution-preview-row > * {
+  min-width: 0;
+  padding: 10px;
+  border-right: 1px solid #d7d7d7;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.solution-preview-row > *:last-child {
+  border-right: 0;
+}
+
+.solution-preview-head {
+  background: #f2f2f2;
+  color: #555555;
+}
+
+.solution-preview-head > span {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1.35;
+}
+
+.solution-cell-text {
+  display: grid;
+  gap: 6px;
+  white-space: pre-wrap;
+}
+
+.solution-cell-text strong {
+  font-size: 14px;
+}
+
+.solution-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
+  gap: 8px;
+}
+
+.solution-image-grid img {
+  width: 100%;
+  height: 156px;
+  object-fit: contain;
+  background: #f6f6f6;
+  border: 1px solid #d7d7d7;
+  border-radius: 6px;
+  padding: 3px;
+  display: block;
+}
+
+.solution-empty {
+  color: #777777;
+  font-size: 12px;
+}
+
+.style-preview-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  border-bottom: 1px solid #d7d7d7;
+}
+
+.style-preview-row:last-child {
+  border-bottom: 0;
+}
+
+.style-preview-row > * {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  border-right: 0;
+}
+
+.style-preview-label {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 10px;
+  background: #f2f2f2;
+  color: #555555;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 500;
+  border-bottom: 1px solid #d7d7d7;
+}
+
+.style-cell-text {
+  white-space: pre-wrap;
+  padding: 10px;
+}
+
+.style-reference-cell {
+  padding: 10px;
+}
+
+.style-note-block {
+  border-top: 1px solid #d7d7d7;
+}
+
+.style-image-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.style-image-grid img {
+  width: 100%;
+  height: 172px;
+  object-fit: contain;
+  background: #f6f6f6;
+  border: 1px solid #d7d7d7;
+  border-radius: 6px;
+  padding: 3px;
+  display: block;
+}
+
+.color-font-preview {
+  display: grid;
+  gap: 12px;
+}
+
+.palette-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr);
+  gap: 8px;
+  align-items: stretch;
+  border: 1px solid #d7d7d7;
+  border-radius: var(--radius);
+  background: #ffffff;
+  padding: 8px;
+}
+
+.palette-preview-single {
+  grid-template-columns: 1fr;
+}
+
+.palette-accent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.palette-card {
+  position: relative;
+  min-height: 92px;
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-radius: 0;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.palette-main {
+  min-height: 192px;
+}
+
+.palette-card span {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.palette-card strong {
+  position: relative;
+  z-index: 1;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.palette-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 42%);
+  pointer-events: none;
+}
+
+.font-preview-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #d7d7d7;
+  border-radius: var(--radius);
+  padding: 14px;
+  background: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei",
+    "Segoe UI", sans-serif;
+}
+
+.font-preview-card > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: baseline;
+  border-bottom: 1px solid #d7d7d7;
+  padding-bottom: 10px;
+}
+
+.font-caption {
+  color: #666666;
+  font-size: 11px;
+}
+
+.font-family-name {
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 650;
+  text-align: right;
+}
+
+.font-preview-cn {
+  font-size: 34px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.font-preview-alpha,
+.font-preview-number {
+  font-size: 18px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, auto);
+  border-bottom: 1px solid #d7d7d7;
+}
+
+.table-row:last-child {
+  border-bottom: 0;
+}
+
+.table-row span {
+  padding: 10px 12px;
+  font-size: 13px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.table-row span:last-child {
+  text-align: right;
+  border-left: 1px solid #d7d7d7;
+}
+
+.table-head {
+  background: #f2f2f2;
+  color: #555555;
+}
+
+.sheet-total {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  margin-top: 3mm;
+  padding-top: 4mm;
+  border-top: 1px solid #111111;
+  width: 100%;
+}
+
+.sheet-total span {
+  color: #111111;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.sheet-total strong {
+  font-size: 26px;
+  font-weight: 750;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.trash-dialog {
+  width: min(560px, calc(100vw - 32px));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.trash-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(4px);
+}
+
+.dialog-head {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.trash-row {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.trash-meta {
+  display: grid;
+  gap: 3px;
+}
+
+.trash-meta span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.empty-note {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 16px 0;
+}
+
+.toast-stack {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  display: grid;
+  gap: 10px;
+  width: min(320px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.app-toast {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(16px);
+  padding: 12px 14px;
+  animation: toastIn 0.24s var(--ease-out) both;
+}
+
+.app-toast.is-leaving {
+  animation: toastOut 0.2s ease both;
+}
+
+.app-toast strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.app-toast span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media screen and (max-width: 1180px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-wrap {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media screen and (max-width: 760px) {
+  .app-shell {
+    padding: 18px;
+    overflow-x: hidden;
+  }
+
+  .workspace,
+  .panel,
+  .form-panel,
+  .preset-panel,
+  .preview-wrap,
+  .sheet {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .topbar,
+  .editor-grid,
+  .field-grid,
+  .client-block,
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    display: grid;
+  }
+
+  .top-actions {
+    justify-content: flex-start;
+  }
+
+  .editor-grid {
+    display: grid;
+  }
+
+  .preset-panel {
+    position: static;
+  }
+
+  .quote-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px;
+  }
+
+  .solution-upload-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .font-select-row,
+  .palette-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .style-upload-thumbs,
+  .style-image-grid,
+  .palette-accent-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .solution-preview-row,
+  .style-preview-row {
+    grid-template-columns: 1fr;
+  }
+
+  .solution-preview-row > *,
+  .style-preview-row > * {
+    border-right: 0;
+    border-bottom: 1px solid #d7d7d7;
+  }
+
+  .sheet {
+    width: 100%;
+    padding: 14mm 12mm;
+  }
+
+  .toast-stack {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .sheet-block div {
+    border-right: 0;
+    border-bottom: 1px solid #d7d7d7;
+  }
+
+  .sheet-block div:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 6mm;
+  }
+
+  html,
+  body {
+    background: #ffffff;
+    margin: 0;
+  }
+
+  .workspace {
+    display: none;
+  }
+
+  .toast-stack {
+    display: none;
+  }
+
+  .app-shell {
+    display: block;
+    padding: 0;
+  }
+
+  .preview-wrap {
+    display: block;
+    padding: 0;
+    overflow: visible;
+    max-height: none;
+  }
+
+  .sheet {
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    box-shadow: none;
+    border: 0;
+    padding: 12mm 11mm;
+    display: block;
+    animation: none;
+    transform: none !important;
+    break-inside: auto;
+    font-kerning: normal;
+    text-rendering: optimizeLegibility;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .sheet * {
+    letter-spacing: 0 !important;
+    word-spacing: normal !important;
+  }
+
+  .sheet > * + * {
+    margin-top: 10mm;
+  }
+
+  .sheet-header,
+  .sheet-block,
+  .sheet-total {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .client-block {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .meta-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sheet-block div {
+    border-right: 1px solid #d7d7d7;
+    border-bottom: 0;
+  }
+
+  .sheet-block div:last-child {
+    border-right: 0;
+  }
+
+  .sheet-section {
+    break-inside: auto;
+    page-break-inside: auto;
+    margin-top: 10mm;
+  }
+
+  .sheet-section h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+    margin-bottom: 4mm;
+  }
+
+  .sheet-block + .sheet-section {
+    margin-top: 11mm;
+  }
+
+  .sheet-section + .sheet-section {
+    margin-top: 11mm;
+  }
+
+  .sheet-section ol,
+  .sheet-section p {
+    margin-top: 0;
+  }
+
+  .sheet-table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    border: 1px solid #d7d7d7;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .table-row {
+    display: table-row;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border-bottom: 0;
+  }
+
+  .table-row span {
+    display: table-cell;
+    border-bottom: 1px solid #d7d7d7;
+    vertical-align: top;
+  }
+
+  .table-row:last-child span {
+    border-bottom: 0;
+  }
+
+  .table-row span:last-child {
+    width: 34mm;
+    white-space: nowrap;
+  }
+
+  .solution-preview-section,
+  .style-preview-section,
+  .color-font-preview-section {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .solution-preview-table,
+  .style-preview-table {
+    overflow: visible;
+  }
+
+  .solution-preview-row,
+  .style-preview-row,
+  .palette-card,
+  .font-preview-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .sheet-total {
+    margin-top: 7mm;
+    padding-top: 4mm;
+    border-top: 1px solid #d7d7d7;
+  }
+
+  .sheet-section:has(.sheet-total) + .sheet-section {
+    margin-top: 9mm;
+  }
+}
+
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-label="项目确认表编辑区">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Project Confirmation</p>
+            <h1>项目确认表</h1>
+          </div>
+          <div class="top-actions">
+            <button class="primary-button" id="openTrashBtn" type="button">回收站</button>
+            <button class="ghost-button" id="saveJpgBtn" type="button">保存 JPG</button>
+            <button class="ghost-button" id="printBtn" type="button">打印 / PDF</button>
+          </div>
+        </header>
+
+        <div class="editor-grid">
+          <section class="panel form-panel">
+            <div class="section-heading">
+              <h2>基础信息</h2>
+              <div class="heading-actions">
+                <label class="preview-switch" title="控制右侧基础信息预览">
+                  <input id="toggleBasicInfoPreview" type="checkbox" checked aria-label="显示基础信息预览" />
+                  <span aria-hidden="true"></span>
+                </label>
+                <button class="ghost-button compact" id="resetBtn" type="button">清空</button>
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <label>
+                客户名称
+                <input id="clientName" type="text" placeholder="例如：某某品牌" />
+              </label>
+              <label>
+                项目名称
+                <input id="projectName" type="text" placeholder="例如：品牌视觉设计" />
+              </label>
+              <label>
+                确认单标题
+                <input id="confirmationTitle" type="text" placeholder="例如：项目报价确认单" />
+              </label>
+              <label>
+                确认日期
+                <input id="quoteDate" type="date" />
+              </label>
+              <label>
+                预计时间
+                <input id="designTime" type="text" placeholder="例如：5 个工作日" />
+              </label>
+              <label>
+                人员明细
+                <input id="designerCount" type="text" placeholder="例如：设计师 1 名，项目经理 1 名" />
+              </label>
+              <label>
+                交付时间
+                <input id="deliveryTime" type="text" placeholder="例如：定金到账后 7 个工作日" />
+              </label>
+              <label>
+                全款金额上限
+                <input id="paymentThreshold" type="number" min="0" step="100" placeholder="例如：1000" />
+              </label>
+            </div>
+
+            <div class="section-heading inline-space">
+              <h2>项目内容</h2>
+              <div class="heading-actions">
+                <label class="preview-switch" title="控制右侧项目内容预览">
+                  <input id="toggleContentsPreview" type="checkbox" checked aria-label="显示项目内容预览" />
+                  <span aria-hidden="true"></span>
+                </label>
+                <button class="icon-text-button" id="addContentBtn" type="button">
+                  <span aria-hidden="true">＋</span>
+                  添加
+                </button>
+              </div>
+            </div>
+            <div class="list-stack" id="contentList" aria-live="polite"></div>
+
+            <div class="section-heading inline-space">
+              <h2>项目报价</h2>
+              <div class="heading-actions">
+                <label class="preview-switch" title="控制右侧项目报价预览">
+                  <input id="toggleQuotesPreview" type="checkbox" checked aria-label="显示项目报价预览" />
+                  <span aria-hidden="true"></span>
+                </label>
+                <button class="icon-text-button" id="addQuoteBtn" type="button">
+                  <span aria-hidden="true">＋</span>
+                  添加
+                </button>
+              </div>
+            </div>
+            <div class="quote-list" id="quoteList" aria-live="polite"></div>
+            <div class="total-strip">
+              <span>合计</span>
+              <strong id="totalAmount">¥0</strong>
+            </div>
+
+            <label class="full-field">
+              温馨提示
+              <textarea id="warmTip" rows="4"></textarea>
+            </label>
+
+            <div class="section-heading inline-space">
+              <h2>方案确认</h2>
+              <div class="heading-actions">
+                <label class="preview-switch" title="控制右侧方案确认预览">
+                  <input id="toggleSolutionsPreview" type="checkbox" checked aria-label="显示方案确认预览" />
+                  <span aria-hidden="true"></span>
+                </label>
+                <button class="icon-text-button" id="addSolutionBtn" type="button">
+                  <span aria-hidden="true">＋</span>
+                  添加
+                </button>
+              </div>
+            </div>
+            <div class="solution-list" id="solutionList" aria-live="polite"></div>
+
+            <div class="section-heading inline-space">
+              <h2>风格确认</h2>
+              <div class="heading-actions">
+                <label class="preview-switch" title="控制右侧风格确认预览">
+                  <input id="toggleStylesPreview" type="checkbox" checked aria-label="显示风格确认预览" />
+                  <span aria-hidden="true"></span>
+                </label>
+                <button class="icon-text-button" id="addStyleBtn" type="button">
+                  <span aria-hidden="true">＋</span>
+                  添加
+                </button>
+              </div>
+            </div>
+            <div class="style-list" id="styleList" aria-live="polite"></div>
+
+            <div class="section-heading inline-space">
+              <h2>配色&字体确认</h2>
+              <div class="heading-actions">
+                <label class="preview-switch" title="控制右侧配色与字体预览">
+                  <input id="toggleColorFontPreview" type="checkbox" checked aria-label="显示配色与字体预览" />
+                  <span aria-hidden="true"></span>
+                </label>
+                <button class="icon-text-button" id="addAccentColorBtn" type="button">
+                  <span aria-hidden="true">＋</span>
+                  辅助色
+                </button>
+              </div>
+            </div>
+            <div class="color-font-editor">
+              <div class="color-list" id="colorList" aria-live="polite"></div>
+              <label>
+                字体
+                <div class="font-select-row">
+                  <select id="fontSelect" aria-label="选择字体"></select>
+                  <button class="ghost-button compact" id="loadFontsBtn" type="button">读取本机字体</button>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          <aside class="panel preset-panel">
+            <div class="section-heading">
+              <h2>历史项目</h2>
+              <button class="icon-button small" id="savePresetBtn" type="button" title="保存当前预设" aria-label="保存当前预设">
+                <span aria-hidden="true">＋</span>
+              </button>
+            </div>
+            <div class="backup-card" id="backupCard">
+              <div>
+                <strong>数据备份</strong>
+                <span>保存当前源数据，支持拖拽上传</span>
+              </div>
+              <div class="backup-actions">
+                <button class="ghost-button compact" id="importDataBtn" type="button">上传源数据</button>
+                <button class="primary-button compact" id="exportDataBtn" type="button">下载源数据</button>
+              </div>
+              <input id="importDataFile" type="file" accept="application/json,.json" hidden />
+            </div>
+            <div class="preset-list" id="presetList"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="preview-wrap" aria-label="A4 确认单预览">
+        <article class="sheet" id="sheet">
+          <header class="sheet-header">
+            <div>
+              <p>Project Confirmation</p>
+              <h2 id="previewTitle">项目确认单</h2>
+            </div>
+            <span id="previewDate"></span>
+          </header>
+
+          <section class="sheet-block client-block">
+            <div>
+              <span>客户名称</span>
+              <strong id="previewClient">待填写</strong>
+            </div>
+            <div>
+              <span>项目名称</span>
+              <strong id="previewProject">待填写</strong>
+            </div>
+          </section>
+
+          <section class="sheet-block meta-grid">
+            <div>
+              <span>预计时间</span>
+              <strong id="previewDesignTime">待填写</strong>
+            </div>
+            <div>
+              <span>人员明细</span>
+              <strong id="previewDesignerCount">待填写</strong>
+            </div>
+            <div>
+              <span>交付时间</span>
+              <strong id="previewDeliveryTime">待填写</strong>
+            </div>
+          </section>
+
+          <section class="sheet-section content-preview-section">
+            <h3>项目内容</h3>
+            <ol id="previewContent"></ol>
+          </section>
+
+          <section class="sheet-section quote-preview-section">
+            <h3>项目报价</h3>
+            <div class="sheet-table" id="previewQuotes"></div>
+            <div class="sheet-total">
+              <span>报价合计</span>
+              <strong id="previewTotal">¥0</strong>
+            </div>
+          </section>
+
+          <section class="sheet-section payment-preview-section">
+            <h3>付款方式</h3>
+            <p id="previewPayment"></p>
+          </section>
+
+          <section class="sheet-section tip-preview-section">
+            <h3>温馨提示</h3>
+            <p id="previewTip"></p>
+          </section>
+
+          <section class="sheet-section solution-preview-section">
+            <div class="sheet-subheader">
+              <p>Solution Confirmation</p>
+              <h2>方案确认</h2>
+            </div>
+            <div class="solution-preview-table" id="previewSolutions"></div>
+          </section>
+
+          <section class="sheet-section style-preview-section">
+            <div class="sheet-subheader">
+              <p>Style Confirmation</p>
+              <h2>风格确认</h2>
+            </div>
+            <div class="style-preview-table" id="previewStyles"></div>
+          </section>
+
+          <section class="sheet-section color-font-preview-section">
+            <div class="sheet-subheader">
+              <p>Color & Font Confirmation</p>
+              <h2>配色&字体确认</h2>
+            </div>
+            <div class="color-font-preview" id="previewColorFont"></div>
+          </section>
+        </article>
+      </section>
+    </main>
+
+    <dialog class="trash-dialog" id="trashDialog">
+      <div class="dialog-head">
+        <h2>回收站</h2>
+        <button class="icon-button small" id="closeTrashBtn" type="button" title="关闭" aria-label="关闭">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <div class="trash-list" id="trashList"></div>
+      <div class="dialog-actions">
+        <button class="ghost-button" id="clearTrashBtn" type="button">清空回收站</button>
+      </div>
+    </dialog>
+    <script>
+const defaultTip =
+  "这次报价包含 2 轮细节修改，如果是整体风格方向调整，需要重新评估工作量后补充报价。";
+
+const builtInPresets = [
+  {
+    id: "poster",
+    name: "海报视觉",
+    designTime: "3 个工作日",
+    designerCount: "1 人",
+    deliveryTime: "定金到账后 3 个工作日内交付",
+    contents: ["主视觉设计 1 款", "延展尺寸适配 2 个", "源文件与预览图交付"],
+    quotes: [{ name: "海报视觉设计", price: 1200 }],
+  },
+  {
+    id: "brand",
+    name: "品牌基础",
+    designTime: "7 个工作日",
+    designerCount: "2 人",
+    deliveryTime: "定金到账后 7 个工作日内交付",
+    contents: ["Logo 方向设计 2 款", "品牌字体与色彩规范", "名片与社媒头像延展"],
+    quotes: [{ name: "品牌基础视觉设计", price: 6800 }],
+  },
+  {
+    id: "package",
+    name: "包装设计",
+    designTime: "10 个工作日",
+    designerCount: "2 人",
+    deliveryTime: "定金到账后 10 个工作日内交付",
+    contents: ["包装主画面设计", "结构刀版适配", "印刷文件整理"],
+    quotes: [{ name: "产品包装设计", price: 5200 }],
+  },
+];
+
+const fontCandidates = [
+  "Microsoft YaHei",
+  "Microsoft JhengHei",
+  "SimSun",
+  "SimHei",
+  "KaiTi",
+  "FangSong",
+  "DengXian",
+  "YouYuan",
+  "PingFang SC",
+  "Hiragino Sans GB",
+  "Noto Sans CJK SC",
+  "Source Han Sans SC",
+  "HarmonyOS Sans SC",
+  "MiSans",
+  "Alibaba PuHuiTi",
+  "Arial",
+  "Calibri",
+  "Segoe UI",
+  "Times New Roman",
+  "Georgia",
+];
+
+const fontPreviewChinese = "字体预览效果";
+const fontPreviewLetters = "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z";
+const fontPreviewNumbers = "0 1 2 3 4 5 6 7 8 9";
+
+const fontDisplayNames = {
+  "Alibaba PuHuiTi": "阿里巴巴普惠体",
+  DengXian: "等线",
+  FangSong: "仿宋",
+  "Hiragino Sans GB": "冬青黑体",
+  "HarmonyOS Sans SC": "鸿蒙黑体",
+  KaiTi: "楷体",
+  "Microsoft JhengHei": "微软正黑体",
+  "Microsoft YaHei": "微软雅黑",
+  "Microsoft YaHei UI": "微软雅黑 UI",
+  MiSans: "MiSans",
+  MingLiU: "细明体",
+  "MingLiU-ExtB": "细明体 ExtB",
+  "Noto Sans CJK SC": "思源黑体",
+  PMingLiU: "新细明体",
+  "PMingLiU-ExtB": "新细明体 ExtB",
+  "Sarasa Mono SC": "更纱黑体 Mono SC",
+  SimHei: "黑体",
+  SimSun: "宋体",
+  "Source Han Sans SC": "思源黑体",
+  Xiquezhaopaiti: "喜鹊招牌体",
+  XiQuezhaopaiti: "喜鹊招牌体",
+  YouYuan: "幼圆",
+};
+
+const storageKey = "project-confirmation-tool-state-v1";
+const customPresetKey = "project-confirmation-tool-presets-v1";
+
+const elements = {
+  clientName: document.querySelector("#clientName"),
+  projectName: document.querySelector("#projectName"),
+  confirmationTitle: document.querySelector("#confirmationTitle"),
+  quoteDate: document.querySelector("#quoteDate"),
+  designTime: document.querySelector("#designTime"),
+  designerCount: document.querySelector("#designerCount"),
+  deliveryTime: document.querySelector("#deliveryTime"),
+  paymentThreshold: document.querySelector("#paymentThreshold"),
+  warmTip: document.querySelector("#warmTip"),
+  contentList: document.querySelector("#contentList"),
+  quoteList: document.querySelector("#quoteList"),
+  solutionList: document.querySelector("#solutionList"),
+  styleList: document.querySelector("#styleList"),
+  colorList: document.querySelector("#colorList"),
+  fontSelect: document.querySelector("#fontSelect"),
+  toggleBasicInfoPreview: document.querySelector("#toggleBasicInfoPreview"),
+  toggleContentsPreview: document.querySelector("#toggleContentsPreview"),
+  toggleQuotesPreview: document.querySelector("#toggleQuotesPreview"),
+  toggleSolutionsPreview: document.querySelector("#toggleSolutionsPreview"),
+  toggleStylesPreview: document.querySelector("#toggleStylesPreview"),
+  toggleColorFontPreview: document.querySelector("#toggleColorFontPreview"),
+  totalAmount: document.querySelector("#totalAmount"),
+  presetList: document.querySelector("#presetList"),
+  backupCard: document.querySelector("#backupCard"),
+  importDataFile: document.querySelector("#importDataFile"),
+  trashDialog: document.querySelector("#trashDialog"),
+  trashList: document.querySelector("#trashList"),
+};
+
+function createDefaultState() {
+  return {
+    clientName: "",
+    projectName: "",
+    confirmationTitle: "项目确认单",
+    quoteDate: new Date().toISOString().slice(0, 10),
+    designTime: "",
+    designerCount: "",
+    deliveryTime: "",
+    paymentThreshold: 1000,
+    warmTip: defaultTip,
+    contents: [{ id: createId(), text: "项目内容 1" }],
+    quotes: [{ id: createId(), name: "项目设计服务", price: 1200 }],
+    solutions: [createSolution()],
+    styleConfirmations: [createStyleConfirmation()],
+    colorFont: createColorFontConfirmation(),
+    previewSections: createPreviewSections(),
+    trash: [],
+    removedBuiltInPresetIds: [],
+  };
+}
+
+let state = createDefaultState();
+
+let customPresets = [];
+let availableFonts = [];
+let activeImagePasteZone = null;
+
+function createId() {
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function createSolution() {
+  return {
+    id: createId(),
+    direction: "",
+    referenceImages: [],
+    materialImages: [],
+    copy: "",
+    note: "",
+  };
+}
+
+function createStyleConfirmation() {
+  return {
+    id: createId(),
+    title: "",
+    images: [],
+    note: "",
+  };
+}
+
+function createColorFontConfirmation() {
+  return {
+    primaryColor: "#111111",
+    accentColors: ["#D8D8DC", "#F5F5F7", "#B8B8BF"],
+    fontFamily: "Microsoft YaHei",
+  };
+}
+
+function createPreviewSections() {
+  return {
+    basicInfo: true,
+    contents: true,
+    quotes: true,
+    solutions: true,
+    styles: true,
+    colorFont: true,
+  };
+}
+
+function normalizeHexColor(value) {
+  const match = String(value || "")
+    .trim()
+    .match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+  if (!match) return "";
+
+  let hex = match[1];
+  if (hex.length === 3) {
+    hex = hex
+      .split("")
+      .map((char) => char + char)
+      .join("");
+  }
+  return `#${hex.toUpperCase()}`;
+}
+
+function normalizeStyleConfirmations(items) {
+  if (!Array.isArray(items) || !items.length) return [createStyleConfirmation()];
+  return items.map((item) => ({
+    ...createStyleConfirmation(),
+    ...item,
+    images: Array.isArray(item.images) ? item.images : [],
+  }));
+}
+
+function normalizeColorFont(value) {
+  const defaults = createColorFontConfirmation();
+  const incoming = value && typeof value === "object" ? value : {};
+  const accentColors = Array.isArray(incoming.accentColors)
+    ? incoming.accentColors.map(normalizeHexColor).filter(Boolean)
+    : defaults.accentColors;
+
+  return {
+    ...defaults,
+    ...incoming,
+    primaryColor: normalizeHexColor(incoming.primaryColor) || defaults.primaryColor,
+    accentColors,
+    fontFamily: incoming.fontFamily || defaults.fontFamily,
+  };
+}
+
+function normalizeSolutions(items) {
+  if (!Array.isArray(items) || !items.length) return [createSolution()];
+  return items.map((item) => ({
+    ...createSolution(),
+    ...item,
+    referenceImages: Array.isArray(item.referenceImages) ? item.referenceImages : [],
+    materialImages: Array.isArray(item.materialImages) ? item.materialImages : [],
+  }));
+}
+
+function normalizeImportedState(value) {
+  const defaults = createDefaultState();
+  const incoming = value && typeof value === "object" ? value : {};
+
+  return {
+    ...defaults,
+    ...incoming,
+    contents: Array.isArray(incoming.contents) ? incoming.contents : defaults.contents,
+    quotes: Array.isArray(incoming.quotes) ? incoming.quotes : defaults.quotes,
+    solutions: normalizeSolutions(incoming.solutions),
+    styleConfirmations: normalizeStyleConfirmations(incoming.styleConfirmations),
+    colorFont: normalizeColorFont(incoming.colorFont),
+    previewSections: normalizePreviewSections(incoming.previewSections),
+    trash: Array.isArray(incoming.trash) ? incoming.trash : [],
+    removedBuiltInPresetIds: Array.isArray(incoming.removedBuiltInPresetIds)
+      ? incoming.removedBuiltInPresetIds
+      : [],
+  };
+}
+
+function normalizePreviewSections(value) {
+  const defaults = createPreviewSections();
+  const incoming = value && typeof value === "object" ? value : {};
+  return {
+    basicInfo: typeof incoming.basicInfo === "boolean" ? incoming.basicInfo : defaults.basicInfo,
+    contents: typeof incoming.contents === "boolean" ? incoming.contents : defaults.contents,
+    quotes: typeof incoming.quotes === "boolean" ? incoming.quotes : defaults.quotes,
+    solutions: typeof incoming.solutions === "boolean" ? incoming.solutions : defaults.solutions,
+    styles: typeof incoming.styles === "boolean" ? incoming.styles : defaults.styles,
+    colorFont: typeof incoming.colorFont === "boolean" ? incoming.colorFont : defaults.colorFont,
+  };
+}
+
+function formatMoney(value) {
+  const amount = Number(value) || 0;
+  return `¥${amount.toLocaleString("zh-CN", {
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function getTotal() {
+  return state.quotes.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+}
+
+function getPaymentText(total) {
+  const threshold = Number(state.paymentThreshold) || 0;
+  if (total > threshold) {
+    const half = total / 2;
+    return `付款方式：50% 定金 ${formatMoney(half)} + 50% 尾款 ${formatMoney(half)}。`;
+  }
+  return `付款方式：全款 ${formatMoney(total)}。`;
+}
+
+function loadState() {
+  try {
+    const savedState = JSON.parse(localStorage.getItem(storageKey));
+    const savedPresets = JSON.parse(localStorage.getItem(customPresetKey));
+
+    if (savedState && typeof savedState === "object") {
+      state = normalizeImportedState(savedState);
+    }
+
+    if (Array.isArray(savedPresets)) {
+      customPresets = savedPresets;
+    }
+  } catch {
+    localStorage.removeItem(storageKey);
+    localStorage.removeItem(customPresetKey);
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+    localStorage.setItem(customPresetKey, JSON.stringify(customPresets));
+  } catch (error) {
+    console.warn("本地缓存空间不足，当前内容仍可导出，但刷新后部分图片可能不会保留。", error);
+  }
+}
+
+function showToast(title, message = "") {
+  let stack = document.querySelector(".toast-stack");
+  if (!stack) {
+    stack = document.createElement("div");
+    stack.className = "toast-stack";
+    document.body.append(stack);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = "app-toast";
+  toast.innerHTML = `
+    <strong>${escapeHtml(title)}</strong>
+    ${message ? `<span>${escapeHtml(message)}</span>` : ""}
+  `;
+  stack.append(toast);
+
+  window.setTimeout(() => {
+    toast.classList.add("is-leaving");
+    toast.addEventListener("animationend", () => toast.remove(), { once: true });
+  }, 2600);
+}
+
+function syncInputs() {
+  elements.clientName.value = state.clientName;
+  elements.projectName.value = state.projectName;
+  elements.confirmationTitle.value = state.confirmationTitle;
+  elements.quoteDate.value = state.quoteDate;
+  elements.designTime.value = state.designTime;
+  elements.designerCount.value = state.designerCount;
+  elements.deliveryTime.value = state.deliveryTime;
+  elements.paymentThreshold.value = state.paymentThreshold;
+  elements.warmTip.value = state.warmTip;
+  state.previewSections = normalizePreviewSections(state.previewSections);
+  elements.toggleBasicInfoPreview.checked = state.previewSections.basicInfo;
+  elements.toggleContentsPreview.checked = state.previewSections.contents;
+  elements.toggleQuotesPreview.checked = state.previewSections.quotes;
+  elements.toggleSolutionsPreview.checked = state.previewSections.solutions;
+  elements.toggleStylesPreview.checked = state.previewSections.styles;
+  elements.toggleColorFontPreview.checked = state.previewSections.colorFont;
+}
+
+function renderContentRows() {
+  elements.contentList.innerHTML = "";
+
+  state.contents.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "content-row";
+    row.dataset.id = item.id;
+    row.innerHTML = `
+      <input type="text" value="${escapeHtml(item.text)}" aria-label="项目内容" />
+      <button class="row-delete" type="button" title="删除" aria-label="删除">−</button>
+    `;
+    elements.contentList.append(row);
+  });
+}
+
+function renderQuoteRows() {
+  elements.quoteList.innerHTML = "";
+
+  state.quotes.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "quote-row";
+    row.dataset.id = item.id;
+    row.innerHTML = `
+      <input type="text" value="${escapeHtml(item.name)}" aria-label="报价项目" />
+      <input type="number" min="0" step="100" value="${Number(item.price) || 0}" aria-label="报价金额" />
+      <button class="row-delete" type="button" title="删除" aria-label="删除">−</button>
+    `;
+    elements.quoteList.append(row);
+  });
+}
+
+function renderImageEditor(images, solutionId, kind) {
+  const thumbs = (images || [])
+    .map(
+      (image) => `
+        <button class="upload-thumb" type="button" data-image-action="remove" data-solution-id="${solutionId}" data-kind="${kind}" data-image-id="${image.id}" title="删除图片">
+          <img src="${image.src}" alt="${escapeHtml(image.name || "上传图片")}" />
+        </button>
+      `
+    )
+    .join("");
+
+  return `
+    <div class="image-dropzone" data-solution-id="${solutionId}" data-kind="${kind}" tabindex="0">
+      <input type="file" accept="image/*" multiple aria-label="上传图片" />
+      <div class="dropzone-copy">
+        <strong>上传 / 拖拽图片</strong>
+        <span>支持拖拽、点击选择，也可以 Ctrl+V 粘贴图片</span>
+      </div>
+      <div class="upload-thumbs">${thumbs}</div>
+    </div>
+  `;
+}
+
+function renderSolutionRows() {
+  elements.solutionList.innerHTML = "";
+
+  state.solutions.forEach((solution, index) => {
+    const row = document.createElement("div");
+    row.className = "solution-row";
+    row.dataset.id = solution.id;
+    row.innerHTML = `
+      <div class="solution-row-head">
+        <strong>方案 ${index + 1}</strong>
+        <button class="row-delete" type="button" title="删除" aria-label="删除">−</button>
+      </div>
+      <label>
+        标题
+        <input data-field="direction" type="text" value="${escapeHtml(solution.direction)}" placeholder="例如：第一屏 / 风格方向 A / 主视觉方案" />
+      </label>
+      <div class="solution-upload-grid">
+        <label class="field-label">
+          参考图
+          ${renderImageEditor(solution.referenceImages, solution.id, "referenceImages")}
+        </label>
+        <label class="field-label">
+          素材图
+          ${renderImageEditor(solution.materialImages, solution.id, "materialImages")}
+        </label>
+      </div>
+      <label>
+        文案
+        <textarea data-field="copy" rows="3" placeholder="客户需要确认的主标题、副标题或画面文案">${escapeHtml(solution.copy)}</textarea>
+      </label>
+      <label>
+        备注
+        <textarea data-field="note" rows="3" placeholder="尺寸、禁用元素、修改意见、交付要求等">${escapeHtml(solution.note)}</textarea>
+      </label>
+    `;
+    elements.solutionList.append(row);
+  });
+}
+
+function renderStyleImageEditor(images, styleId) {
+  const thumbs = (images || [])
+    .map(
+      (image) => `
+        <button class="upload-thumb" type="button" data-style-image-action="remove" data-style-id="${styleId}" data-image-id="${image.id}" title="删除图片">
+          <img src="${image.src}" alt="${escapeHtml(image.name || "风格图片")}" />
+        </button>
+      `
+    )
+    .join("");
+
+  return `
+    <div class="image-dropzone style-dropzone" data-style-id="${styleId}" tabindex="0">
+      <input type="file" accept="image/*" multiple aria-label="上传风格图片" />
+      <div class="dropzone-copy">
+        <strong>上传 / 拖拽图片</strong>
+        <span>支持拖拽、点击选择，也可以 Ctrl+V 粘贴图片</span>
+      </div>
+      <div class="upload-thumbs style-upload-thumbs">${thumbs}</div>
+    </div>
+  `;
+}
+
+function renderStyleRows() {
+  elements.styleList.innerHTML = "";
+
+  state.styleConfirmations.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "style-row";
+    row.dataset.id = item.id;
+    row.innerHTML = `
+      <div class="solution-row-head">
+        <strong>风格 ${index + 1}</strong>
+        <button class="row-delete" type="button" title="删除" aria-label="删除">−</button>
+      </div>
+      <label class="field-label">
+        风格参考
+        ${renderStyleImageEditor(item.images, item.id)}
+      </label>
+      <label>
+        备注
+        <textarea data-field="note" rows="3" placeholder="风格倾向、禁用元素、参考说明或修改意见">${escapeHtml(item.note)}</textarea>
+      </label>
+    `;
+    elements.styleList.append(row);
+  });
+}
+
+function getReadableColor(hex) {
+  const color = normalizeHexColor(hex) || "#FFFFFF";
+  const red = Number.parseInt(color.slice(1, 3), 16);
+  const green = Number.parseInt(color.slice(3, 5), 16);
+  const blue = Number.parseInt(color.slice(5, 7), 16);
+  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+  return luminance > 150 ? "#111111" : "#ffffff";
+}
+
+function renderColorControls() {
+  const colorFont = normalizeColorFont(state.colorFont);
+  state.colorFont = colorFont;
+  const primaryColor = colorFont.primaryColor;
+  const accentRows = colorFont.accentColors
+    .map(
+      (color, index) => `
+        <div class="color-control-card" data-color-role="accent" data-color-index="${index}">
+          <span>辅助色 ${index + 1}</span>
+          <div class="color-input-pair">
+            <input data-color-picker type="color" value="${color}" aria-label="辅助色 ${index + 1}" />
+            <input data-color-value type="text" value="${color}" maxlength="7" aria-label="辅助色色号 ${index + 1}" />
+            <button class="row-delete" data-color-action="remove" type="button" title="删除辅助色" aria-label="删除辅助色">−</button>
+          </div>
+        </div>
+      `
+    )
+    .join("");
+
+  elements.colorList.innerHTML = `
+    <div class="color-control-card is-primary" data-color-role="primary">
+      <span>主色</span>
+      <div class="color-input-pair">
+        <input data-color-picker type="color" value="${primaryColor}" aria-label="主色" />
+        <input data-color-value type="text" value="${primaryColor}" maxlength="7" aria-label="主色色号" />
+      </div>
+    </div>
+    ${accentRows}
+  `;
+}
+
+function quoteCssFont(fontFamily) {
+  return `"${String(fontFamily || "").replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
+}
+
+function getFontStack(fontFamily = state.colorFont.fontFamily) {
+  const family = fontFamily || "Microsoft YaHei";
+  return `${quoteCssFont(family)}, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif`;
+}
+
+function getFontOptions() {
+  const selected = state.colorFont.fontFamily;
+  const fonts = selected ? [selected, ...availableFonts] : availableFonts;
+  return [...new Set(fonts.filter(Boolean))];
+}
+
+function getFontDisplayName(fontFamily) {
+  if (!fontFamily) return "待选择";
+  if (fontDisplayNames[fontFamily]) return fontDisplayNames[fontFamily];
+  const lowerName = String(fontFamily).toLowerCase();
+  const matchedKey = Object.keys(fontDisplayNames).find((key) => key.toLowerCase() === lowerName);
+  return matchedKey ? fontDisplayNames[matchedKey] : fontFamily;
+}
+
+function renderFontControls() {
+  const options = getFontOptions();
+  if (!options.length) {
+    availableFonts = ["Microsoft YaHei", "SimSun", "Arial"];
+  }
+
+  const fonts = getFontOptions();
+  if (!state.colorFont.fontFamily || !fonts.includes(state.colorFont.fontFamily)) {
+    state.colorFont.fontFamily = fonts[0] || "Microsoft YaHei";
+  }
+
+  elements.fontSelect.innerHTML = fonts
+    .map((font) => `<option value="${escapeHtml(font)}">${escapeHtml(getFontDisplayName(font))}</option>`)
+    .join("");
+  elements.fontSelect.value = state.colorFont.fontFamily;
+}
+
+function renderPresets() {
+  const presets = [
+    ...builtInPresets
+      .filter((preset) => !state.removedBuiltInPresetIds.includes(preset.id))
+      .map((preset) => ({ ...preset, source: "builtin" })),
+    ...customPresets.map((preset) => ({ ...preset, source: "custom" })),
+  ];
+
+  elements.presetList.innerHTML = "";
+
+  presets.forEach((preset) => {
+    const card = document.createElement("div");
+    card.className = "preset-card";
+    card.innerHTML = `
+      <strong>${escapeHtml(preset.name)}</strong>
+      <span>${escapeHtml(preset.designTime || "未设置时间")} · ${escapeHtml(
+      preset.designerCount || "未设置人员"
+    )}</span>
+      <div class="preset-actions">
+        <button type="button" data-action="apply">套用</button>
+        <button type="button" data-action="delete">删除</button>
+      </div>
+    `;
+
+    card.querySelector('[data-action="apply"]').addEventListener("click", () => applyPreset(preset));
+    card.querySelector('[data-action="delete"]').addEventListener("click", () => deletePreset(preset));
+
+    elements.presetList.append(card);
+  });
+}
+
+function renderTrash() {
+  elements.trashList.innerHTML = "";
+
+  if (!state.trash.length) {
+    elements.trashList.innerHTML = '<p class="empty-note">回收站为空</p>';
+    return;
+  }
+
+  state.trash.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "trash-row";
+    row.innerHTML = `
+      <div class="trash-meta">
+        <strong>${escapeHtml(getTrashTitle(item))}</strong>
+        <span>${item.type === "content" ? "项目内容" : item.type === "quote" ? "项目报价" : "预设"}</span>
+      </div>
+      <button type="button">恢复</button>
+    `;
+    row.querySelector("button").addEventListener("click", () => restoreTrashItem(item.id));
+    elements.trashList.append(row);
+  });
+}
+
+function renderPreview() {
+  const total = getTotal();
+  document.querySelector("#previewTitle").textContent = state.confirmationTitle || "项目确认单";
+  document.querySelector("#previewDate").textContent = state.quoteDate || "";
+  document.querySelector("#previewClient").textContent = state.clientName || "待填写";
+  document.querySelector("#previewProject").textContent = state.projectName || "待填写";
+  document.querySelector("#previewDesignTime").textContent = state.designTime || "待填写";
+  document.querySelector("#previewDesignerCount").textContent = state.designerCount || "待填写";
+  document.querySelector("#previewDeliveryTime").textContent = state.deliveryTime || "待填写";
+  document.querySelector("#previewTotal").textContent = formatMoney(total);
+  document.querySelector("#previewPayment").textContent = getPaymentText(total);
+  document.querySelector("#previewTip").textContent = state.warmTip || defaultTip;
+  elements.totalAmount.textContent = formatMoney(total);
+
+  const content = document.querySelector("#previewContent");
+  content.innerHTML = "";
+  const validContents = state.contents.filter((item) => item.text.trim());
+  if (!validContents.length) {
+    const empty = document.createElement("li");
+    empty.textContent = "待填写";
+    content.append(empty);
+  } else {
+    validContents.forEach((item) => {
+      const li = document.createElement("li");
+      li.textContent = item.text;
+      content.append(li);
+    });
+  }
+
+  const quotes = document.querySelector("#previewQuotes");
+  quotes.innerHTML = `
+    <div class="table-row table-head">
+      <span>项目</span>
+      <span>金额</span>
+    </div>
+  `;
+
+  const validQuotes = state.quotes.filter((item) => item.name.trim() || Number(item.price));
+  if (!validQuotes.length) {
+    quotes.insertAdjacentHTML(
+      "beforeend",
+      '<div class="table-row"><span>待填写</span><span>¥0</span></div>'
+    );
+  } else {
+    validQuotes.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "table-row";
+      row.innerHTML = `<span>${escapeHtml(item.name || "未命名项目")}</span><span>${formatMoney(
+        item.price
+      )}</span>`;
+      quotes.append(row);
+    });
+  }
+
+  state.previewSections = normalizePreviewSections(state.previewSections);
+
+  const clientBlock = document.querySelector(".client-block");
+  const metaGrid = document.querySelector(".meta-grid");
+  const contentSection = document.querySelector(".content-preview-section");
+  const quoteSection = document.querySelector(".quote-preview-section");
+  const paymentSection = document.querySelector(".payment-preview-section");
+  const tipSection = document.querySelector(".tip-preview-section");
+  const solutionSection = document.querySelector(".solution-preview-section");
+  const styleSection = document.querySelector(".style-preview-section");
+  const colorFontSection = document.querySelector(".color-font-preview-section");
+  clientBlock.hidden = !state.previewSections.basicInfo;
+  metaGrid.hidden = !state.previewSections.basicInfo;
+  contentSection.hidden = !state.previewSections.contents;
+  quoteSection.hidden = !state.previewSections.quotes;
+  paymentSection.hidden = !state.previewSections.quotes;
+  tipSection.hidden = !state.previewSections.quotes;
+  solutionSection.hidden = !state.previewSections.solutions;
+  styleSection.hidden = !state.previewSections.styles;
+  colorFontSection.hidden = !state.previewSections.colorFont;
+
+  const previewOrder = [
+    clientBlock,
+    metaGrid,
+    contentSection,
+    quoteSection,
+    paymentSection,
+    tipSection,
+    solutionSection,
+    styleSection,
+    colorFontSection,
+  ];
+  previewOrder.forEach((section) => section.classList.remove("first-visible-preview-section"));
+  const firstVisibleSection = previewOrder.find((section) => !section.hidden);
+  if (firstVisibleSection) firstVisibleSection.classList.add("first-visible-preview-section");
+
+  if (state.previewSections.solutions) renderPreviewSolutions();
+  if (state.previewSections.styles) renderPreviewStyles();
+  if (state.previewSections.colorFont) renderPreviewColorFont();
+}
+
+function renderPreviewImages(images) {
+  if (!images || !images.length) return '<span class="solution-empty">待上传</span>';
+  return `
+    <div class="solution-image-grid">
+      ${images
+        .map((image) => `<img src="${image.src}" alt="${escapeHtml(image.name || "方案图片")}" />`)
+        .join("")}
+    </div>
+  `;
+}
+
+function renderPreviewSolutions() {
+  const target = document.querySelector("#previewSolutions");
+  const rows = state.solutions.length ? state.solutions : [createSolution()];
+  target.innerHTML = `
+    <div class="solution-preview-row solution-preview-head">
+      <span>序号 / 标题</span>
+      <span>参考图</span>
+      <span>素材图</span>
+      <span>文案</span>
+      <span>备注</span>
+    </div>
+  `;
+
+  rows.forEach((solution, index) => {
+    const row = document.createElement("div");
+    row.className = "solution-preview-row";
+    row.innerHTML = `
+      <div class="solution-cell-text">
+        <strong>${index + 1}</strong>
+        <span>${escapeHtml(solution.direction || "待填写")}</span>
+      </div>
+      <div>${renderPreviewImages(solution.referenceImages)}</div>
+      <div>${renderPreviewImages(solution.materialImages)}</div>
+      <div class="solution-cell-text">${escapeHtml(solution.copy || "待填写")}</div>
+      <div class="solution-cell-text">${escapeHtml(solution.note || "待填写")}</div>
+    `;
+    target.append(row);
+  });
+}
+
+function renderPreviewStyleImages(images) {
+  if (!images || !images.length) return '<span class="solution-empty print-text">待上传</span>';
+  return `
+    <div class="style-image-grid">
+      ${images
+        .map((image) => `<img src="${image.src}" alt="${escapeHtml(image.name || "风格图片")}" />`)
+        .join("")}
+    </div>
+  `;
+}
+
+function renderPreviewStyles() {
+  const target = document.querySelector("#previewStyles");
+  const rows = state.styleConfirmations.length ? state.styleConfirmations : [createStyleConfirmation()];
+  target.innerHTML = `
+    <div class="style-preview-label print-text">风格参考</div>
+  `;
+
+  rows.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "style-preview-row";
+    row.innerHTML = `
+      <div class="style-reference-cell">${renderPreviewStyleImages(item.images)}</div>
+      <div class="style-note-block">
+        <span class="style-preview-label print-text">备注</span>
+        <div class="style-cell-text print-text">${escapeHtml(item.note || "待填写")}</div>
+      </div>
+    `;
+    target.append(row);
+  });
+}
+
+function renderPreviewColorFont() {
+  const target = document.querySelector("#previewColorFont");
+  const colorFont = normalizeColorFont(state.colorFont);
+  state.colorFont = colorFont;
+  const primaryInk = getReadableColor(colorFont.primaryColor);
+  const accentCards = colorFont.accentColors
+    .map((color, index) => {
+      const ink = getReadableColor(color);
+      return `
+        <div class="palette-card" style="background:${color}; color:${ink};">
+          <span class="print-text">辅助色 ${index + 1}</span>
+          <strong class="print-text">${color}</strong>
+        </div>
+      `;
+    })
+    .join("");
+  const fontStack = getFontStack(colorFont.fontFamily);
+  const fontDisplayName = getFontDisplayName(colorFont.fontFamily);
+  const accentPalette = accentCards ? `<div class="palette-accent-grid">${accentCards}</div>` : "";
+
+  target.innerHTML = `
+    <div class="palette-preview${accentCards ? "" : " palette-preview-single"}">
+      <div class="palette-card palette-main" style="background:${colorFont.primaryColor}; color:${primaryInk};">
+        <span class="print-text">主色</span>
+        <strong class="print-text">${colorFont.primaryColor}</strong>
+      </div>
+      ${accentPalette}
+    </div>
+    <div class="font-preview-card">
+      <div>
+        <span class="font-caption print-text">确认字体</span>
+        <strong class="font-family-name print-text">${escapeHtml(fontDisplayName)}</strong>
+      </div>
+      <div class="font-preview-cn font-sample print-text" style="font-family:${escapeHtml(fontStack)};">${fontPreviewChinese}</div>
+      <div class="font-preview-alpha font-sample print-text" style="font-family:${escapeHtml(fontStack)};">${fontPreviewLetters}</div>
+      <div class="font-preview-number font-sample print-text" style="font-family:${escapeHtml(fontStack)};">${fontPreviewNumbers}</div>
+    </div>
+  `;
+}
+
+function renderAll() {
+  syncInputs();
+  renderContentRows();
+  renderQuoteRows();
+  renderSolutionRows();
+  renderStyleRows();
+  renderColorControls();
+  renderFontControls();
+  renderPresets();
+  renderTrash();
+  renderPreview();
+  saveState();
+}
+
+function pullFormState() {
+  state.clientName = elements.clientName.value.trim();
+  state.projectName = elements.projectName.value.trim();
+  state.confirmationTitle = elements.confirmationTitle.value.trim();
+  state.quoteDate = elements.quoteDate.value;
+  state.designTime = elements.designTime.value.trim();
+  state.designerCount = elements.designerCount.value;
+  state.deliveryTime = elements.deliveryTime.value.trim();
+  state.paymentThreshold = Number(elements.paymentThreshold.value) || 0;
+  state.warmTip = elements.warmTip.value.trim();
+}
+
+function applyPreset(preset) {
+  state.designTime = preset.designTime || "";
+  state.designerCount = preset.designerCount || "";
+  state.deliveryTime = preset.deliveryTime || "";
+  state.paymentThreshold = Number(preset.paymentThreshold ?? state.paymentThreshold) || 0;
+  state.warmTip = preset.warmTip || defaultTip;
+  state.contents = (preset.contents || []).map((text) => ({ id: createId(), text }));
+  state.quotes = (preset.quotes || []).map((item) => ({
+    id: createId(),
+    name: item.name || "项目设计服务",
+    price: Number(item.price) || 0,
+  }));
+  state.solutions = Array.isArray(preset.solutions)
+    ? preset.solutions.map((item) => ({ ...createSolution(), ...item, id: createId() }))
+    : state.solutions;
+  state.styleConfirmations = Array.isArray(preset.styleConfirmations)
+    ? normalizeStyleConfirmations(preset.styleConfirmations).map((item) => ({ ...item, id: createId() }))
+    : state.styleConfirmations;
+  state.colorFont = preset.colorFont ? normalizeColorFont(preset.colorFont) : state.colorFont;
+  renderAll();
+}
+
+function saveCurrentPreset() {
+  pullFormState();
+  const name = state.projectName || `自定义预设 ${customPresets.length + 1}`;
+  customPresets.push({
+    id: createId(),
+    name,
+    designTime: state.designTime,
+    designerCount: state.designerCount,
+    deliveryTime: state.deliveryTime,
+    paymentThreshold: state.paymentThreshold,
+    warmTip: state.warmTip,
+    contents: state.contents.map((item) => item.text),
+    quotes: state.quotes.map((item) => ({ name: item.name, price: item.price })),
+    solutions: state.solutions,
+    styleConfirmations: state.styleConfirmations,
+    colorFont: state.colorFont,
+  });
+  renderAll();
+  showToast("已保存到历史项目", name);
+}
+
+function deletePreset(preset) {
+  if (!preset) return;
+
+  if (preset.source === "builtin") {
+    state.removedBuiltInPresetIds = [...new Set([...state.removedBuiltInPresetIds, preset.id])];
+  } else {
+    customPresets = customPresets.filter((item) => item.id !== preset.id);
+  }
+
+  const payload = { ...preset };
+  delete payload.source;
+  state.trash.unshift({ id: createId(), type: "preset", source: preset.source, payload });
+  renderAll();
+}
+
+function getTrashTitle(item) {
+  if (item.type === "content") return item.payload.text || "未命名内容";
+  if (item.type === "quote") return `${item.payload.name || "未命名报价"} · ${formatMoney(item.payload.price)}`;
+  return item.payload.name || "未命名预设";
+}
+
+function restoreTrashItem(id) {
+  const item = state.trash.find((entry) => entry.id === id);
+  if (!item) return;
+
+  if (item.type === "content") {
+    state.contents.push({ ...item.payload, id: createId() });
+  }
+
+  if (item.type === "quote") {
+    state.quotes.push({ ...item.payload, id: createId() });
+  }
+
+  if (item.type === "preset") {
+    if (item.source === "builtin") {
+      state.removedBuiltInPresetIds = state.removedBuiltInPresetIds.filter(
+        (presetId) => presetId !== item.payload.id
+      );
+    } else {
+      customPresets.push({ ...item.payload, id: createId() });
+    }
+  }
+
+  state.trash = state.trash.filter((entry) => entry.id !== id);
+  renderAll();
+}
+
+function canvasToJpegBlob(canvas) {
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
+}
+
+function getExportFileName() {
+  const name = state.confirmationTitle || state.projectName || "项目确认单";
+  const safeName = name.replace(/[\\/:*?"<>|]/g, "-").trim() || "项目确认单";
+  return `${safeName}.jpg`;
+}
+
+function getDataFileName() {
+  const name = state.projectName || state.confirmationTitle || "项目确认单";
+  const safeName = name.replace(/[\\/:*?"<>|]/g, "-").trim() || "项目确认单";
+  return `${safeName}-源数据.json`;
+}
+
+function getSourceDataPayload() {
+  return {
+    app: "project-confirmation-tool",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    state,
+  };
+}
+
+async function pickSourceDataFileHandle() {
+  if (!("showSaveFilePicker" in window)) return null;
+
+  return window.showSaveFilePicker({
+    suggestedName: getDataFileName(),
+    types: [
+      {
+        description: "项目确认表源数据",
+        accept: { "application/json": [".json"] },
+      },
+    ],
+  });
+}
+
+async function exportSourceData() {
+  pullFormState();
+  renderPreview();
+  saveState();
+
+  const json = JSON.stringify(getSourceDataPayload(), null, 2);
+  let handle = null;
+
+  try {
+    handle = await pickSourceDataFileHandle();
+  } catch (error) {
+    if (error && error.name === "AbortError") return;
+    alert(`无法打开保存位置选择窗口：${error.message || "浏览器限制"}`);
+    return;
+  }
+
+  try {
+    const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+    if (handle) {
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      showToast("源数据已下载", getDataFileName());
+      return;
+    }
+
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = getDataFileName();
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast("源数据已下载", "当前浏览器已使用默认下载方式");
+  } catch (error) {
+    alert(`源数据下载失败：${error.message || "未知错误"}`);
+  }
+}
+
+async function importSourceDataFile(file) {
+  if (!file) return;
+
+  const confirmed = window.confirm("上传源数据会覆盖当前正在编辑的内容，是否继续？");
+  if (!confirmed) return;
+
+  try {
+    const payload = JSON.parse(await file.text());
+    const importedState = payload?.state || payload?.data || payload;
+    if (!importedState || typeof importedState !== "object") {
+      throw new Error("文件内容不是有效的项目源数据");
+    }
+
+    state = normalizeImportedState(importedState);
+    renderAll();
+    showToast("源数据已上传", "页面已恢复为备份内容");
+  } catch (error) {
+    alert(`源数据上传失败：${error.message || "文件格式不正确"}`);
+  }
+}
+
+function parsePixelValue(value) {
+  const number = Number.parseFloat(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function isTransparent(color) {
+  return !color || color === "transparent" || color === "rgba(0, 0, 0, 0)";
+}
+
+function getElementRect(element, origin) {
+  const rect = element.getBoundingClientRect();
+  return {
+    x: rect.left - origin.left,
+    y: rect.top - origin.top,
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+function drawCanvasRect(ctx, rect, style) {
+  const radius = parsePixelValue(style.borderTopLeftRadius);
+  if (!isTransparent(style.backgroundColor)) {
+    ctx.fillStyle = style.backgroundColor;
+    drawRoundedRect(ctx, rect.x, rect.y, rect.width, rect.height, radius);
+    ctx.fill();
+  }
+
+  drawCanvasBorders(ctx, rect, style);
+}
+
+function drawCanvasBorders(ctx, rect, style) {
+  const borders = [
+    ["Top", rect.x, rect.y, rect.x + rect.width, rect.y],
+    ["Right", rect.x + rect.width, rect.y, rect.x + rect.width, rect.y + rect.height],
+    ["Bottom", rect.x, rect.y + rect.height, rect.x + rect.width, rect.y + rect.height],
+    ["Left", rect.x, rect.y, rect.x, rect.y + rect.height],
+  ];
+
+  borders.forEach(([side, x1, y1, x2, y2]) => {
+    const width = parsePixelValue(style[`border${side}Width`]);
+    const color = style[`border${side}Color`];
+    if (!width || isTransparent(color) || style[`border${side}Style`] === "none") return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  });
+}
+
+function wrapDomText(ctx, text, maxWidth) {
+  return String(text || "")
+    .split("\n")
+    .flatMap((paragraph) => {
+      const lines = [];
+      let current = "";
+      for (const char of paragraph) {
+        const next = current + char;
+        if (ctx.measureText(next).width > maxWidth && current) {
+          lines.push(current);
+          current = char;
+        } else {
+          current = next;
+        }
+      }
+      if (current) lines.push(current);
+      return lines.length ? lines : [""];
+    });
+}
+
+function getCanvasText(element) {
+  const text = element.innerText || element.textContent || "";
+  if (element.tagName === "LI") {
+    const items = Array.from(element.parentElement.children).filter((child) => child.tagName === "LI");
+    return `${items.indexOf(element) + 1}. ${text}`;
+  }
+  return text;
+}
+
+function drawCanvasText(ctx, element, origin) {
+  const style = window.getComputedStyle(element);
+  const rect = getElementRect(element, origin);
+  const paddingLeft = parsePixelValue(style.paddingLeft);
+  const paddingRight = parsePixelValue(style.paddingRight);
+  const paddingTop = parsePixelValue(style.paddingTop);
+  const fontSize = parsePixelValue(style.fontSize) || 13;
+  const lineHeight = style.lineHeight === "normal" ? fontSize * 1.45 : parsePixelValue(style.lineHeight) || fontSize * 1.45;
+  const maxWidth = Math.max(1, rect.width - paddingLeft - paddingRight);
+  const text = getCanvasText(element);
+
+  ctx.fillStyle = style.color || "#111111";
+  ctx.font = style.font || `${style.fontWeight || 400} ${fontSize}px ${style.fontFamily || "sans-serif"}`;
+
+  const lines = wrapDomText(ctx, text, maxWidth);
+  const isVerticallyCentered =
+    style.alignItems === "center" ||
+    element.classList.contains("style-preview-label") ||
+    Boolean(element.closest(".solution-preview-head"));
+  const textBlockHeight = Math.max(0, (lines.length - 1) * lineHeight);
+  const startY = isVerticallyCentered
+    ? rect.y + rect.height / 2 - textBlockHeight / 2
+    : rect.y + paddingTop;
+  ctx.textBaseline = isVerticallyCentered ? "middle" : "top";
+
+  lines.forEach((line, index) => {
+    let x = rect.x + paddingLeft;
+    if (style.textAlign === "right") {
+      x = rect.x + rect.width - paddingRight;
+      ctx.textAlign = "right";
+    } else if (style.textAlign === "center") {
+      x = rect.x + rect.width / 2;
+      ctx.textAlign = "center";
+    } else {
+      ctx.textAlign = "left";
+    }
+    ctx.fillText(line, x, startY + index * lineHeight);
+  });
+  ctx.textAlign = "left";
+}
+
+function shouldDrawText(element) {
+  return element.matches(
+    ".sheet-header p, .sheet-header h2, .sheet-header > span, .sheet-block span, .sheet-block strong, .sheet-section h3, .sheet-section p, .sheet-section li, .table-row span, .sheet-total span, .sheet-total strong, .sheet-subheader p, .sheet-subheader h2, .solution-preview-head span, .solution-cell-text, .solution-empty, .print-text"
+  );
+}
+
+function drawCanvasImage(ctx, element, rect) {
+  if (!element.complete || !element.naturalWidth || !element.naturalHeight) return;
+  const style = window.getComputedStyle(element);
+  const insetLeft = parsePixelValue(style.paddingLeft) + parsePixelValue(style.borderLeftWidth);
+  const insetRight = parsePixelValue(style.paddingRight) + parsePixelValue(style.borderRightWidth);
+  const insetTop = parsePixelValue(style.paddingTop) + parsePixelValue(style.borderTopWidth);
+  const insetBottom = parsePixelValue(style.paddingBottom) + parsePixelValue(style.borderBottomWidth);
+  const contentRect = {
+    x: rect.x + insetLeft,
+    y: rect.y + insetTop,
+    width: Math.max(1, rect.width - insetLeft - insetRight),
+    height: Math.max(1, rect.height - insetTop - insetBottom),
+  };
+  const ratio = Math.min(contentRect.width / element.naturalWidth, contentRect.height / element.naturalHeight);
+  const width = element.naturalWidth * ratio;
+  const height = element.naturalHeight * ratio;
+  const x = contentRect.x + (contentRect.width - width) / 2;
+  const y = contentRect.y + (contentRect.height - height) / 2;
+  ctx.drawImage(element, x, y, width, height);
+  drawCanvasBorders(ctx, rect, style);
+}
+
+function drawPreviewElement(ctx, element, origin) {
+  const rect = getElementRect(element, origin);
+  if (rect.width <= 0 || rect.height <= 0) return;
+
+  const style = window.getComputedStyle(element);
+  drawCanvasRect(ctx, rect, style);
+
+  if (element.tagName === "IMG") {
+    drawCanvasImage(ctx, element, rect);
+    return;
+  }
+
+  if (shouldDrawText(element)) {
+    drawCanvasText(ctx, element, origin);
+    return;
+  }
+
+  Array.from(element.children).forEach((child) => drawPreviewElement(ctx, child, origin));
+}
+
+function waitForPreviewImages() {
+  const images = Array.from(document.querySelectorAll("#sheet img"));
+  return Promise.all(
+    images.map((image) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        image.onload = resolve;
+        image.onerror = resolve;
+      });
+    })
+  );
+}
+
+async function renderPreviewToCanvas() {
+  await waitForPreviewImages();
+  const sheet = document.querySelector("#sheet");
+  const rect = sheet.getBoundingClientRect();
+  const width = Math.ceil(Math.max(sheet.scrollWidth, rect.width));
+  const height = Math.ceil(Math.max(sheet.scrollHeight, rect.height));
+  const scale = Math.min(3, Math.max(1, Math.floor(16384 / Math.max(width, height)) || 1));
+  const canvas = document.createElement("canvas");
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  drawPreviewElement(ctx, sheet, rect);
+  return canvas;
+}
+
+function setCanvasText(ctx, size, weight = 400, color = "#111111") {
+  ctx.fillStyle = color;
+  ctx.font = `${weight} ${size}px -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif`;
+}
+
+function drawRoundedRect(ctx, x, y, width, height, radius = 22) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+function wrapCanvasText(ctx, text, maxWidth) {
+  const source = String(text || "");
+  const lines = [];
+  let current = "";
+
+  for (const char of source) {
+    if (char === "\n") {
+      lines.push(current);
+      current = "";
+      continue;
+    }
+
+    const next = current + char;
+    if (ctx.measureText(next).width > maxWidth && current) {
+      lines.push(current);
+      current = char;
+    } else {
+      current = next;
+    }
+  }
+
+  if (current) lines.push(current);
+  return lines.length ? lines : ["待填写"];
+}
+
+function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines = Infinity) {
+  const wrappedLines = wrapCanvasText(ctx, text, maxWidth);
+  const lines = wrappedLines.slice(0, maxLines);
+  lines.forEach((line, index) => {
+    const finalLine = index === maxLines - 1 && wrappedLines.length > maxLines
+      ? `${line.slice(0, Math.max(0, line.length - 1))}…`
+      : line;
+    ctx.fillText(finalLine, x, y + index * lineHeight);
+  });
+  return y + lines.length * lineHeight;
+}
+
+function getWrappedTextHeight(ctx, text, maxWidth, lineHeight) {
+  return wrapCanvasText(ctx, text, maxWidth).length * lineHeight;
+}
+
+function getInfoBoxHeight(ctx, width, columns, minHeight) {
+  const colWidth = width / columns.length;
+  setCanvasText(ctx, 44, 600, "#111111");
+  const maxLines = columns.reduce((max, column) => {
+    const lineCount = wrapCanvasText(ctx, column.value || "待填写", colWidth - 72).length;
+    return Math.max(max, lineCount);
+  }, 1);
+  return Math.max(minHeight, 130 + maxLines * 58);
+}
+
+function drawInfoBox(ctx, x, y, width, height, columns) {
+  const boxHeight = getInfoBoxHeight(ctx, width, columns, height);
+  ctx.save();
+  drawRoundedRect(ctx, x, y, width, boxHeight, 22);
+  ctx.strokeStyle = "#d7d7d7";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.clip();
+
+  const colWidth = width / columns.length;
+  columns.forEach((column, index) => {
+    const colX = x + colWidth * index;
+    if (index > 0) {
+      ctx.beginPath();
+      ctx.moveTo(colX, y);
+      ctx.lineTo(colX, y + boxHeight);
+      ctx.stroke();
+    }
+
+    setCanvasText(ctx, 34, 400, "#666666");
+    ctx.fillText(column.label, colX + 36, y + 58);
+    setCanvasText(ctx, 44, 600, "#111111");
+    drawWrappedText(ctx, column.value || "待填写", colX + 36, y + 118, colWidth - 72, 58);
+  });
+  ctx.restore();
+  return boxHeight;
+}
+
+function getQuoteRows(ctx, quoteRows, tableWidth, priceWidth) {
+  const nameWidth = tableWidth - priceWidth - 72;
+  setCanvasText(ctx, 38, 400, "#111111");
+  return quoteRows.map((item) => {
+    const lineCount = wrapCanvasText(ctx, item.name || "未命名项目", nameWidth).length;
+    return {
+      item,
+      height: Math.max(92, 44 + lineCount * 48),
+    };
+  });
+}
+
+function getPriceWidth(ctx, quoteRows, total, tableWidth) {
+  setCanvasText(ctx, 38, 400, "#111111");
+  const prices = quoteRows.map((item) => formatMoney(item.price));
+  prices.push(formatMoney(total));
+  const maxPriceWidth = prices.reduce((max, price) => Math.max(max, ctx.measureText(price).width), 0);
+  return Math.min(Math.max(420, maxPriceWidth + 110), tableWidth * 0.45);
+}
+
+function drawSectionTitle(ctx, title, x, y) {
+  setCanvasText(ctx, 46, 700, "#111111");
+  ctx.fillText(title, x, y);
+}
+
+function getConfirmationLayoutHeight(ctx, page) {
+  const margin = 200;
+  const innerWidth = page.width - margin * 2;
+  let y = 190;
+  const total = getTotal();
+  const contents = state.contents.filter((item) => item.text.trim());
+  const contentRows = contents.length ? contents : [{ text: "待填写" }];
+  const validQuotes = state.quotes.filter((item) => item.name.trim() || Number(item.price));
+  const quoteRows = validQuotes.length ? validQuotes : [{ name: "待填写", price: 0 }];
+  const priceWidth = getPriceWidth(ctx, quoteRows, total, innerWidth);
+  const quoteLayoutRows = getQuoteRows(ctx, quoteRows, innerWidth, priceWidth);
+
+  y += 185;
+  y += 82;
+
+  state.previewSections = normalizePreviewSections(state.previewSections);
+
+  if (state.previewSections.basicInfo) {
+    const clientBoxHeight = getInfoBoxHeight(ctx, innerWidth, [
+      { label: "客户名称", value: state.clientName || "待填写" },
+      { label: "项目名称", value: state.projectName || "待填写" },
+    ], 190);
+    y += clientBoxHeight + 60;
+
+    const metaBoxHeight = getInfoBoxHeight(ctx, innerWidth, [
+      { label: "预计时间", value: state.designTime || "待填写" },
+      { label: "人员明细", value: state.designerCount || "待填写" },
+      { label: "交付时间", value: state.deliveryTime || "待填写" },
+    ], 190);
+    y += metaBoxHeight + 90;
+  }
+
+  if (state.previewSections.contents) {
+    y += 68;
+    setCanvasText(ctx, 42, 400, "#111111");
+    contentRows.forEach((item) => {
+      y += getWrappedTextHeight(ctx, item.text, innerWidth - 58, 64) + 22;
+    });
+    y += 30;
+  }
+
+  if (state.previewSections.quotes) {
+    y += 54;
+    y += 92 + quoteLayoutRows.reduce((sum, row) => sum + row.height, 0) + 80;
+
+    y += 140;
+  }
+
+  y += 66;
+  setCanvasText(ctx, 42, 400, "#111111");
+  y += getWrappedTextHeight(ctx, getPaymentText(total), innerWidth, 64) + 78;
+
+  y += 66;
+  y += getWrappedTextHeight(ctx, state.warmTip || defaultTip, innerWidth, 64);
+
+  return Math.max(page.height, y + 220);
+}
+
+function renderConfirmationCanvas() {
+  const measureCanvas = document.createElement("canvas");
+  const measureCtx = measureCanvas.getContext("2d");
+  const page = { x: 0, y: 0, width: 2480, height: 3508 };
+  const canvas = document.createElement("canvas");
+  canvas.width = page.width;
+  canvas.height = getConfirmationLayoutHeight(measureCtx, page);
+  const ctx = canvas.getContext("2d");
+  const margin = 200;
+  const innerWidth = page.width - margin * 2;
+  let y = 190;
+  const total = getTotal();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, page.width, canvas.height);
+
+  setCanvasText(ctx, 38, 400, "#666666");
+  ctx.fillText("Project Confirmation", margin, y);
+  setCanvasText(ctx, 88, 650, "#111111");
+  drawWrappedText(ctx, state.confirmationTitle || "项目确认单", margin, y + 110, innerWidth, 104, 1);
+  setCanvasText(ctx, 46, 500, "#666666");
+  ctx.textAlign = "right";
+  ctx.fillText(state.quoteDate || "", page.width - margin, y + 50);
+  ctx.textAlign = "left";
+  y += 185;
+
+  ctx.strokeStyle = "#111111";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(margin, y);
+  ctx.lineTo(page.width - margin, y);
+  ctx.stroke();
+  y += 82;
+
+  const clientBoxHeight = drawInfoBox(ctx, margin, y, innerWidth, 190, [
+    { label: "客户名称", value: state.clientName || "待填写" },
+    { label: "项目名称", value: state.projectName || "待填写" },
+  ]);
+  y += clientBoxHeight + 60;
+
+  const metaBoxHeight = drawInfoBox(ctx, margin, y, innerWidth, 190, [
+    { label: "预计时间", value: state.designTime || "待填写" },
+    { label: "人员明细", value: state.designerCount || "待填写" },
+    { label: "交付时间", value: state.deliveryTime || "待填写" },
+  ]);
+  y += metaBoxHeight + 90;
+
+  drawSectionTitle(ctx, "项目内容", margin, y);
+  y += 68;
+  setCanvasText(ctx, 42, 400, "#111111");
+  const contents = state.contents.filter((item) => item.text.trim());
+  (contents.length ? contents : [{ text: "待填写" }]).forEach((item, index) => {
+    const marker = `${index + 1}.`;
+    ctx.fillText(marker, margin, y);
+    y = drawWrappedText(ctx, item.text, margin + 58, y, innerWidth - 58, 64) + 22;
+  });
+  y += 30;
+
+  drawSectionTitle(ctx, "项目报价", margin, y);
+  y += 54;
+  const tableX = margin;
+  const tableY = y;
+  const tableWidth = innerWidth;
+  const validQuotes = state.quotes.filter((item) => item.name.trim() || Number(item.price));
+  const quoteRows = validQuotes.length ? validQuotes : [{ name: "待填写", price: 0 }];
+  const priceWidth = getPriceWidth(ctx, quoteRows, total, tableWidth);
+  const quoteLayoutRows = getQuoteRows(ctx, quoteRows, tableWidth, priceWidth);
+  const headerHeight = 92;
+  const tableHeight = headerHeight + quoteLayoutRows.reduce((sum, row) => sum + row.height, 0);
+
+  drawRoundedRect(ctx, tableX, tableY, tableWidth, tableHeight, 22);
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = "#f2f2f2";
+  ctx.fillRect(tableX, tableY, tableWidth, headerHeight);
+  ctx.strokeStyle = "#d7d7d7";
+  ctx.lineWidth = 3;
+
+  let rowLineY = tableY;
+  [headerHeight, ...quoteLayoutRows.map((row) => row.height)].forEach((height) => {
+    ctx.beginPath();
+    ctx.moveTo(tableX, rowLineY);
+    ctx.lineTo(tableX + tableWidth, rowLineY);
+    ctx.stroke();
+    rowLineY += height;
+  });
+  ctx.beginPath();
+  ctx.moveTo(tableX, rowLineY);
+  ctx.lineTo(tableX + tableWidth, rowLineY);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(tableX + tableWidth - priceWidth, tableY);
+  ctx.lineTo(tableX + tableWidth - priceWidth, tableY + tableHeight);
+  ctx.stroke();
+  setCanvasText(ctx, 38, 500, "#555555");
+  ctx.fillText("项目", tableX + 36, tableY + 58);
+  ctx.textAlign = "right";
+  ctx.fillText("金额", tableX + tableWidth - 36, tableY + 58);
+  ctx.textAlign = "left";
+
+  let rowY = tableY + headerHeight;
+  quoteLayoutRows.forEach(({ item, height }) => {
+    setCanvasText(ctx, 38, 400, "#111111");
+    drawWrappedText(ctx, item.name || "未命名项目", tableX + 36, rowY + 58, tableWidth - priceWidth - 72, 48);
+    ctx.textAlign = "right";
+    ctx.fillText(formatMoney(item.price), tableX + tableWidth - 36, rowY + 58);
+    ctx.textAlign = "left";
+    rowY += height;
+  });
+  ctx.restore();
+  drawRoundedRect(ctx, tableX, tableY, tableWidth, tableHeight, 22);
+  ctx.stroke();
+  y += tableHeight + 80;
+
+  setCanvasText(ctx, 46, 700, "#111111");
+  ctx.fillText("报价合计", margin, y);
+  setCanvasText(ctx, 72, 750, "#111111");
+  ctx.textAlign = "right";
+  ctx.fillText(formatMoney(total), page.width - margin, y + 8);
+  ctx.textAlign = "left";
+  y += 140;
+
+  drawSectionTitle(ctx, "付款方式", margin, y);
+  y += 66;
+  setCanvasText(ctx, 42, 400, "#111111");
+  y = drawWrappedText(ctx, getPaymentText(total), margin, y, innerWidth, 64) + 78;
+
+  drawSectionTitle(ctx, "温馨提示", margin, y);
+  y += 66;
+  setCanvasText(ctx, 42, 400, "#111111");
+  drawWrappedText(ctx, state.warmTip || defaultTip, margin, y, innerWidth, 64);
+
+  return canvas;
+}
+
+async function pickJpgFileHandle() {
+  if (!("showSaveFilePicker" in window)) return null;
+
+  return window.showSaveFilePicker({
+    suggestedName: getExportFileName(),
+    types: [
+      {
+        description: "JPG 图片",
+        accept: { "image/jpeg": [".jpg", ".jpeg"] },
+      },
+    ],
+  });
+}
+
+async function saveJpg() {
+  pullFormState();
+  renderAll();
+
+  let handle = null;
+  try {
+    handle = await pickJpgFileHandle();
+  } catch (error) {
+    if (error && error.name === "AbortError") return;
+    alert(`无法打开保存位置选择窗口：${error.message || "浏览器限制"}`);
+    return;
+  }
+
+  try {
+    const canvas = await renderPreviewToCanvas();
+    const jpegBlob = await canvasToJpegBlob(canvas);
+    if (!jpegBlob) throw new Error("浏览器未能生成 JPG 文件");
+
+    if (handle) {
+      const writable = await handle.createWritable();
+      await writable.write(jpegBlob);
+      await writable.close();
+      return;
+    }
+
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(jpegBlob);
+    link.href = url;
+    link.download = getExportFileName();
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    alert("当前浏览器不支持直接选择保存地址，已改为下载 JPG。若需要每次询问位置，请开启浏览器下载前询问保存位置。");
+  } catch (error) {
+    alert(`JPG 保存失败：${error.message || "未知错误"}`);
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function imageFromSource(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+}
+
+async function readImageFile(file) {
+  const src = await fileToDataUrl(file);
+  const image = await imageFromSource(src);
+  const maxSide = 1400;
+  const ratio = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+  const width = Math.max(1, Math.round(image.naturalWidth * ratio));
+  const height = Math.max(1, Math.round(image.naturalHeight * ratio));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(image, 0, 0, width, height);
+
+  return {
+    id: createId(),
+    name: file.name,
+    src: canvas.toDataURL("image/jpeg", 0.86),
+    width,
+    height,
+  };
+}
+
+async function addSolutionImages(solutionId, kind, files) {
+  const solution = state.solutions.find((item) => item.id === solutionId);
+  if (!solution) return;
+
+  const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
+  const images = await Promise.all(imageFiles.map(readImageFile));
+  if (!images.length) return;
+  solution[kind] = [...(solution[kind] || []), ...images];
+  renderAll();
+  showToast("图片已添加", `${images.length} 张图片已加入方案确认`);
+}
+
+async function addStyleImages(styleId, files) {
+  const styleItem = state.styleConfirmations.find((item) => item.id === styleId);
+  if (!styleItem) return;
+
+  const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
+  const images = await Promise.all(imageFiles.map(readImageFile));
+  if (!images.length) return;
+  styleItem.images = [...(styleItem.images || []), ...images];
+  renderAll();
+  showToast("图片已添加", `${images.length} 张图片已加入风格参考`);
+}
+
+function getClipboardImageFiles(event) {
+  const items = Array.from(event.clipboardData?.items || []);
+  const files = items
+    .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+    .map((item) => item.getAsFile())
+    .filter(Boolean);
+
+  if (files.length) return files;
+  return Array.from(event.clipboardData?.files || []).filter((file) => file.type.startsWith("image/"));
+}
+
+function setActiveImagePasteZone(zone) {
+  if (!zone) return;
+  activeImagePasteZone = zone;
+}
+
+function isTextEditingTarget(target) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.closest(".image-dropzone")) return false;
+  return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+}
+
+function addImagesToPasteZone(zone, files) {
+  if (!zone || !files.length) return;
+
+  if (zone.dataset.styleId) {
+    addStyleImages(zone.dataset.styleId, files);
+    return;
+  }
+
+  addSolutionImages(zone.dataset.solutionId, zone.dataset.kind, files);
+}
+
+function updateSolutionField(row, field, value) {
+  const solution = state.solutions.find((item) => item.id === row.dataset.id);
+  if (!solution) return;
+  solution[field] = value;
+  renderPreview();
+  saveState();
+}
+
+function updateStyleField(row, field, value) {
+  const styleItem = state.styleConfirmations.find((item) => item.id === row.dataset.id);
+  if (!styleItem) return;
+  styleItem[field] = value;
+  renderPreview();
+  saveState();
+}
+
+function updateColorState(card, value) {
+  const color = normalizeHexColor(value);
+  if (!color) return false;
+
+  if (card.dataset.colorRole === "primary") {
+    state.colorFont.primaryColor = color;
+  } else {
+    const index = Number(card.dataset.colorIndex);
+    state.colorFont.accentColors[index] = color;
+  }
+  return color;
+}
+
+function syncColorControls(card, color, source) {
+  const picker = card.querySelector("[data-color-picker]");
+  const text = card.querySelector("[data-color-value]");
+  if (picker && source !== picker) picker.value = color;
+  if (text && source !== text) text.value = color;
+}
+
+function isFontAvailable(fontFamily) {
+  const canvas = isFontAvailable.canvas || (isFontAvailable.canvas = document.createElement("canvas"));
+  const ctx = canvas.getContext("2d");
+  const sample = "mmmmmmmmmmiiiiii字体预览123456789";
+  const size = "72px";
+  const baseFonts = ["monospace", "serif", "sans-serif"];
+
+  return baseFonts.some((baseFont) => {
+    ctx.font = `${size} ${baseFont}`;
+    const baseWidth = ctx.measureText(sample).width;
+    ctx.font = `${size} ${quoteCssFont(fontFamily)}, ${baseFont}`;
+    return ctx.measureText(sample).width !== baseWidth;
+  });
+}
+
+function detectAvailableFonts() {
+  const detected = fontCandidates.filter(isFontAvailable);
+  return detected.length ? detected : ["Microsoft YaHei", "SimSun", "Arial"];
+}
+
+function initializeAvailableFonts() {
+  availableFonts = detectAvailableFonts();
+  if (!state.colorFont.fontFamily || !availableFonts.includes(state.colorFont.fontFamily)) {
+    state.colorFont.fontFamily = availableFonts[0] || "Microsoft YaHei";
+  }
+}
+
+async function loadLocalFonts() {
+  if (!("queryLocalFonts" in window)) {
+    availableFonts = detectAvailableFonts();
+    renderAll();
+    showToast("已刷新字体列表", "当前浏览器使用自动检测字体");
+    return;
+  }
+
+  try {
+    const fonts = await window.queryLocalFonts();
+    const families = [...new Set(fonts.map((font) => font.family).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b, "zh-CN")
+    );
+    if (families.length) {
+      availableFonts = families;
+      if (!availableFonts.includes(state.colorFont.fontFamily)) {
+        state.colorFont.fontFamily = availableFonts[0];
+      }
+      renderAll();
+      showToast("已读取本机字体", `找到 ${availableFonts.length} 个字体家族`);
+    }
+  } catch (error) {
+    console.warn("读取本机字体失败，已保留自动检测字体列表。", error);
+    showToast("字体读取未完成", "已保留当前字体列表");
+  }
+}
+
+function bindEvents() {
+  Object.values(elements)
+    .filter((element) => element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)
+    .forEach((element) => {
+      element.addEventListener("input", () => {
+        pullFormState();
+        renderPreview();
+        saveState();
+      });
+    });
+
+  elements.contentList.addEventListener("input", (event) => {
+    const row = event.target.closest(".content-row");
+    if (!row) return;
+    const item = state.contents.find((entry) => entry.id === row.dataset.id);
+    if (item) item.text = event.target.value;
+    renderPreview();
+    saveState();
+  });
+
+  elements.contentList.addEventListener("click", (event) => {
+    if (!event.target.matches(".row-delete")) return;
+    const row = event.target.closest(".content-row");
+    const item = state.contents.find((entry) => entry.id === row.dataset.id);
+    if (item) state.trash.unshift({ id: createId(), type: "content", payload: item });
+    state.contents = state.contents.filter((entry) => entry.id !== row.dataset.id);
+    if (!state.contents.length) state.contents.push({ id: createId(), text: "" });
+    renderAll();
+  });
+
+  elements.quoteList.addEventListener("input", (event) => {
+    const row = event.target.closest(".quote-row");
+    if (!row) return;
+    const item = state.quotes.find((entry) => entry.id === row.dataset.id);
+    if (!item) return;
+    const inputs = row.querySelectorAll("input");
+    item.name = inputs[0].value;
+    item.price = Number(inputs[1].value) || 0;
+    renderPreview();
+    saveState();
+  });
+
+  elements.quoteList.addEventListener("click", (event) => {
+    if (!event.target.matches(".row-delete")) return;
+    const row = event.target.closest(".quote-row");
+    const item = state.quotes.find((entry) => entry.id === row.dataset.id);
+    if (item) state.trash.unshift({ id: createId(), type: "quote", payload: item });
+    state.quotes = state.quotes.filter((entry) => entry.id !== row.dataset.id);
+    if (!state.quotes.length) state.quotes.push({ id: createId(), name: "", price: 0 });
+    renderAll();
+  });
+
+  elements.solutionList.addEventListener("input", (event) => {
+    const row = event.target.closest(".solution-row");
+    const field = event.target.dataset.field;
+    if (!row || !field) return;
+    updateSolutionField(row, field, event.target.value);
+  });
+
+  elements.solutionList.addEventListener("change", (event) => {
+    if (event.target.type !== "file") return;
+    const zone = event.target.closest(".image-dropzone");
+    if (!zone) return;
+    setActiveImagePasteZone(zone);
+    addSolutionImages(zone.dataset.solutionId, zone.dataset.kind, event.target.files);
+    event.target.value = "";
+  });
+
+  elements.solutionList.addEventListener("focusin", (event) => {
+    setActiveImagePasteZone(event.target.closest(".image-dropzone"));
+  });
+
+  elements.solutionList.addEventListener("pointerenter", (event) => {
+    setActiveImagePasteZone(event.target.closest(".image-dropzone"));
+  }, true);
+
+  elements.solutionList.addEventListener("click", (event) => {
+    setActiveImagePasteZone(event.target.closest(".image-dropzone"));
+  });
+
+  elements.solutionList.addEventListener("click", (event) => {
+    const row = event.target.closest(".solution-row");
+    if (event.target.matches(".solution-row > .solution-row-head .row-delete")) {
+      if (row) {
+        state.solutions = state.solutions.filter((item) => item.id !== row.dataset.id);
+        if (!state.solutions.length) state.solutions.push(createSolution());
+        renderAll();
+      }
+      return;
+    }
+
+    const removeButton = event.target.closest('[data-image-action="remove"]');
+    if (!removeButton) return;
+    const solution = state.solutions.find((item) => item.id === removeButton.dataset.solutionId);
+    if (!solution) return;
+    const kind = removeButton.dataset.kind;
+    solution[kind] = (solution[kind] || []).filter((image) => image.id !== removeButton.dataset.imageId);
+    renderAll();
+  });
+
+  elements.solutionList.addEventListener("dragover", (event) => {
+    const zone = event.target.closest(".image-dropzone");
+    if (!zone) return;
+    event.preventDefault();
+    zone.classList.add("is-dragging");
+  });
+
+  elements.solutionList.addEventListener("dragleave", (event) => {
+    const zone = event.target.closest(".image-dropzone");
+    if (zone) zone.classList.remove("is-dragging");
+  });
+
+  elements.solutionList.addEventListener("drop", (event) => {
+    const zone = event.target.closest(".image-dropzone");
+    if (!zone) return;
+    event.preventDefault();
+    zone.classList.remove("is-dragging");
+    addSolutionImages(zone.dataset.solutionId, zone.dataset.kind, event.dataTransfer.files);
+  });
+
+  elements.styleList.addEventListener("input", (event) => {
+    const row = event.target.closest(".style-row");
+    const field = event.target.dataset.field;
+    if (!row || !field) return;
+    updateStyleField(row, field, event.target.value);
+  });
+
+  elements.styleList.addEventListener("change", (event) => {
+    if (event.target.type !== "file") return;
+    const zone = event.target.closest(".style-dropzone");
+    if (!zone) return;
+    setActiveImagePasteZone(zone);
+    addStyleImages(zone.dataset.styleId, event.target.files);
+    event.target.value = "";
+  });
+
+  elements.styleList.addEventListener("focusin", (event) => {
+    setActiveImagePasteZone(event.target.closest(".style-dropzone"));
+  });
+
+  elements.styleList.addEventListener("pointerenter", (event) => {
+    setActiveImagePasteZone(event.target.closest(".style-dropzone"));
+  }, true);
+
+  elements.styleList.addEventListener("click", (event) => {
+    setActiveImagePasteZone(event.target.closest(".style-dropzone"));
+  });
+
+  elements.styleList.addEventListener("click", (event) => {
+    const row = event.target.closest(".style-row");
+    if (event.target.matches(".style-row > .solution-row-head .row-delete")) {
+      if (row) {
+        state.styleConfirmations = state.styleConfirmations.filter((item) => item.id !== row.dataset.id);
+        if (!state.styleConfirmations.length) state.styleConfirmations.push(createStyleConfirmation());
+        renderAll();
+      }
+      return;
+    }
+
+    const removeButton = event.target.closest('[data-style-image-action="remove"]');
+    if (!removeButton) return;
+    const styleItem = state.styleConfirmations.find((item) => item.id === removeButton.dataset.styleId);
+    if (!styleItem) return;
+    styleItem.images = (styleItem.images || []).filter((image) => image.id !== removeButton.dataset.imageId);
+    renderAll();
+  });
+
+  elements.styleList.addEventListener("dragover", (event) => {
+    const zone = event.target.closest(".style-dropzone");
+    if (!zone) return;
+    event.preventDefault();
+    zone.classList.add("is-dragging");
+  });
+
+  elements.styleList.addEventListener("dragleave", (event) => {
+    const zone = event.target.closest(".style-dropzone");
+    if (zone) zone.classList.remove("is-dragging");
+  });
+
+  elements.styleList.addEventListener("drop", (event) => {
+    const zone = event.target.closest(".style-dropzone");
+    if (!zone) return;
+    event.preventDefault();
+    zone.classList.remove("is-dragging");
+    addStyleImages(zone.dataset.styleId, event.dataTransfer.files);
+  });
+
+  document.addEventListener("paste", (event) => {
+    const files = getClipboardImageFiles(event);
+    if (!files.length || isTextEditingTarget(event.target)) return;
+
+    const targetZone = event.target.closest?.(".image-dropzone") || activeImagePasteZone;
+    if (!targetZone) return;
+
+    event.preventDefault();
+    targetZone.classList.add("is-pasting");
+    window.setTimeout(() => targetZone.classList.remove("is-pasting"), 420);
+    addImagesToPasteZone(targetZone, files);
+  });
+
+  elements.colorList.addEventListener("input", (event) => {
+    if (!event.target.matches("[data-color-picker], [data-color-value]")) return;
+    const card = event.target.closest("[data-color-role]");
+    if (!card) return;
+    const color = updateColorState(card, event.target.value);
+    if (!color) return;
+    syncColorControls(card, color, event.target);
+    renderPreview();
+    saveState();
+  });
+
+  elements.colorList.addEventListener("change", (event) => {
+    if (!event.target.matches("[data-color-picker], [data-color-value]")) return;
+    renderAll();
+  });
+
+  elements.colorList.addEventListener("click", (event) => {
+    const button = event.target.closest('[data-color-action="remove"]');
+    if (!button) return;
+    const card = button.closest('[data-color-role="accent"]');
+    const index = Number(card?.dataset.colorIndex);
+    if (!Number.isFinite(index)) return;
+    state.colorFont.accentColors.splice(index, 1);
+    renderAll();
+  });
+
+  elements.fontSelect.addEventListener("change", () => {
+    state.colorFont.fontFamily = elements.fontSelect.value;
+    renderPreview();
+    saveState();
+  });
+
+  const bindPreviewSwitch = (element, key, label) => {
+    element.addEventListener("change", () => {
+      state.previewSections = normalizePreviewSections(state.previewSections);
+      state.previewSections[key] = element.checked;
+      renderPreview();
+      saveState();
+      showToast(element.checked ? "预览已显示" : "预览已隐藏", label);
+    });
+  };
+
+  bindPreviewSwitch(elements.toggleBasicInfoPreview, "basicInfo", "基础信息");
+  bindPreviewSwitch(elements.toggleContentsPreview, "contents", "项目内容");
+  bindPreviewSwitch(elements.toggleQuotesPreview, "quotes", "项目报价");
+  bindPreviewSwitch(elements.toggleSolutionsPreview, "solutions", "方案确认");
+  bindPreviewSwitch(elements.toggleStylesPreview, "styles", "风格确认");
+  bindPreviewSwitch(elements.toggleColorFontPreview, "colorFont", "配色&字体确认");
+
+  document.querySelector("#addContentBtn").addEventListener("click", () => {
+    state.contents.push({ id: createId(), text: "" });
+    renderAll();
+  });
+
+  document.querySelector("#addQuoteBtn").addEventListener("click", () => {
+    state.quotes.push({ id: createId(), name: "", price: 0 });
+    renderAll();
+  });
+
+  document.querySelector("#addSolutionBtn").addEventListener("click", () => {
+    state.solutions.push(createSolution());
+    renderAll();
+  });
+
+  document.querySelector("#addStyleBtn").addEventListener("click", () => {
+    state.styleConfirmations.push(createStyleConfirmation());
+    renderAll();
+  });
+
+  document.querySelector("#addAccentColorBtn").addEventListener("click", () => {
+    state.colorFont.accentColors.push("#D8D8DC");
+    renderAll();
+  });
+
+  document.querySelector("#loadFontsBtn").addEventListener("click", loadLocalFonts);
+
+  document.querySelector("#savePresetBtn").addEventListener("click", saveCurrentPreset);
+
+  document.querySelector("#exportDataBtn").addEventListener("click", exportSourceData);
+
+  document.querySelector("#importDataBtn").addEventListener("click", () => {
+    elements.importDataFile.click();
+  });
+
+  elements.importDataFile.addEventListener("change", (event) => {
+    importSourceDataFile(event.target.files[0]);
+    event.target.value = "";
+  });
+
+  elements.backupCard.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    elements.backupCard.classList.add("is-dragging");
+  });
+
+  elements.backupCard.addEventListener("dragleave", (event) => {
+    if (elements.backupCard.contains(event.relatedTarget)) return;
+    elements.backupCard.classList.remove("is-dragging");
+  });
+
+  elements.backupCard.addEventListener("drop", (event) => {
+    event.preventDefault();
+    elements.backupCard.classList.remove("is-dragging");
+    importSourceDataFile(event.dataTransfer.files[0]);
+  });
+
+  document.querySelector("#saveJpgBtn").addEventListener("click", saveJpg);
+
+  document.querySelector("#printBtn").addEventListener("click", () => {
+    pullFormState();
+    renderAll();
+    window.print();
+  });
+
+  document.querySelector("#resetBtn").addEventListener("click", () => {
+    state = {
+      ...createDefaultState(),
+      contents: [{ id: createId(), text: "" }],
+      quotes: [{ id: createId(), name: "", price: 0 }],
+      trash: state.trash,
+      removedBuiltInPresetIds: state.removedBuiltInPresetIds,
+    };
+    initializeAvailableFonts();
+    renderAll();
+  });
+
+  document.querySelector("#openTrashBtn").addEventListener("click", () => {
+    renderTrash();
+    elements.trashDialog.showModal();
+  });
+
+  document.querySelector("#closeTrashBtn").addEventListener("click", () => elements.trashDialog.close());
+
+  document.querySelector("#clearTrashBtn").addEventListener("click", () => {
+    state.trash = [];
+    renderAll();
+  });
+}
+
+loadState();
+initializeAvailableFonts();
+bindEvents();
+renderAll();
+
+    </script>
+  </body>
+</html>
