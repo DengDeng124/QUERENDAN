@@ -944,7 +944,7 @@ select {
 
 .solution-preview-row {
   display: grid;
-  grid-template-columns: 0.8fr 1.25fr 1.25fr 1.35fr 1.35fr;
+  grid-template-columns: 0.8fr 1.25fr 1.25fr 2.7fr;
   border-bottom: 1px solid #d7d7d7;
 }
 
@@ -980,13 +980,7 @@ select {
 }
 
 .solution-cell-text {
-  display: grid;
-  gap: 6px;
   white-space: pre-wrap;
-}
-
-.solution-cell-text strong {
-  font-size: 14px;
 }
 
 .solution-image-grid {
@@ -2037,7 +2031,6 @@ function createSolution() {
     referenceImages: [],
     materialImages: [],
     copy: "",
-    note: "",
   };
 }
 
@@ -2112,12 +2105,18 @@ function normalizeColorFont(value) {
 
 function normalizeSolutions(items) {
   if (!Array.isArray(items) || !items.length) return [createSolution()];
-  return items.map((item) => ({
-    ...createSolution(),
-    ...item,
-    referenceImages: Array.isArray(item.referenceImages) ? item.referenceImages : [],
-    materialImages: Array.isArray(item.materialImages) ? item.materialImages : [],
-  }));
+  return items.map((item) => {
+    const { note, ...solution } = item;
+    return {
+      ...createSolution(),
+      ...solution,
+      copy: [solution.copy, note]
+        .filter((value) => typeof value === "string" && value.trim())
+        .join("\n\n"),
+      referenceImages: Array.isArray(solution.referenceImages) ? solution.referenceImages : [],
+      materialImages: Array.isArray(solution.materialImages) ? solution.materialImages : [],
+    };
+  });
 }
 
 function normalizeImportedState(value) {
@@ -2310,7 +2309,7 @@ function renderSolutionRows() {
       </div>
       <label>
         标题
-        <input data-field="direction" type="text" value="${escapeHtml(solution.direction)}" placeholder="例如：第一屏 / 风格方向 A / 主视觉方案" />
+        <textarea data-field="direction" rows="3" placeholder="例如：第一屏 / 风格方向 A / 主视觉方案">${escapeHtml(solution.direction)}</textarea>
       </label>
       <div class="solution-upload-grid">
         <label class="field-label">
@@ -2323,12 +2322,8 @@ function renderSolutionRows() {
         </label>
       </div>
       <label>
-        文案
-        <textarea data-field="copy" rows="3" placeholder="客户需要确认的主标题、副标题或画面文案">${escapeHtml(solution.copy)}</textarea>
-      </label>
-      <label>
-        备注
-        <textarea data-field="note" rows="3" placeholder="尺寸、禁用元素、修改意见、交付要求等">${escapeHtml(solution.note)}</textarea>
+        文案 / 备注
+        <textarea data-field="copy" rows="5" placeholder="画面文案、尺寸、禁用元素、修改意见、交付要求等">${escapeHtml(solution.copy)}</textarea>
       </label>
     `;
     elements.solutionList.append(row);
@@ -2628,26 +2623,21 @@ function renderPreviewSolutions() {
   const rows = state.solutions.length ? state.solutions : [createSolution()];
   target.innerHTML = `
     <div class="solution-preview-row solution-preview-head">
-      <span>序号 / 标题</span>
+      <span>标题</span>
       <span>参考图</span>
       <span>素材图</span>
-      <span>文案</span>
-      <span>备注</span>
+      <span>文案 / 备注</span>
     </div>
   `;
 
-  rows.forEach((solution, index) => {
+  rows.forEach((solution) => {
     const row = document.createElement("div");
     row.className = "solution-preview-row";
     row.innerHTML = `
-      <div class="solution-cell-text">
-        <strong>${index + 1}</strong>
-        <span>${escapeHtml(solution.direction || "待填写")}</span>
-      </div>
+      <div class="solution-cell-text">${escapeHtml(solution.direction || "待填写")}</div>
       <div>${renderPreviewImages(solution.referenceImages)}</div>
       <div>${renderPreviewImages(solution.materialImages)}</div>
       <div class="solution-cell-text">${escapeHtml(solution.copy || "待填写")}</div>
-      <div class="solution-cell-text">${escapeHtml(solution.note || "待填写")}</div>
     `;
     target.append(row);
   });
@@ -2764,7 +2754,7 @@ function applyPreset(preset) {
     price: Number(item.price) || 0,
   }));
   state.solutions = Array.isArray(preset.solutions)
-    ? preset.solutions.map((item) => ({ ...createSolution(), ...item, id: createId() }))
+    ? normalizeSolutions(preset.solutions).map((item) => ({ ...item, id: createId() }))
     : state.solutions;
   state.styleConfirmations = Array.isArray(preset.styleConfirmations)
     ? normalizeStyleConfirmations(preset.styleConfirmations).map((item) => ({ ...item, id: createId() }))
